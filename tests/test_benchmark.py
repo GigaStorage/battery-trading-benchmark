@@ -1,8 +1,9 @@
 import unittest
 
+import pandas as pd
 from ortools.linear_solver import pywraplp
 
-from benchmark import add_power_schedules_to_solver, add_capacity_and_cycles_to_solver
+from benchmark import add_power_schedules_to_solver, add_capacity_and_cycles_to_solver, add_maximize_revenue
 
 
 class TestBenchmark(unittest.TestCase):
@@ -287,6 +288,330 @@ class TestBenchmark(unittest.TestCase):
         self.assertAlmostEqual(optimal_capacity[4], 20)
         self.assertEqual(optimal_charge_power[4], 0)
         self.assertAlmostEqual(optimal_capacity[5], 20)
+
+    def test_simple_case_single_charge_and_discharge(self):
+        price_schedule_list = [
+            {
+                'charge_price': 50.0,
+                'discharge_price': 50.0
+            },
+            {
+                'charge_price': 0.0,
+                'discharge_price': 0.0
+            },
+            {
+                'charge_price': 100.0,
+                'discharge_price': 100.0
+            },
+            {
+                'charge_price': 51.0,  # Equal numbers are not really noticed until cycles kick in
+                'discharge_price': 51.0
+            }
+        ]
+        price_schedule_df = pd.DataFrame(price_schedule_list)
+        max_battery_capacity_kwh = 2000
+        initial_battery_capacity_kwh = 1000
+        min_battery_capacity_kwh = 0
+        max_power_kw = 4000
+        charge_efficiency = 1.0
+        discharge_efficiency = 1.0
+        allowed_cycles = 20
+        solver = pywraplp.Solver('TEST SOLVER', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+        charge_power, discharge_power = add_power_schedules_to_solver(
+            solver=solver,
+            schedule_length=len(price_schedule_df),
+            max_power_kw=max_power_kw,
+        )
+        capacity, cycles = add_capacity_and_cycles_to_solver(
+            solver=solver,
+            charge_power=charge_power,
+            discharge_power=discharge_power,
+            initial_battery_capacity_kwh=initial_battery_capacity_kwh,
+            final_battery_capacity_kwh=initial_battery_capacity_kwh,
+            charge_efficiency=charge_efficiency,
+            discharge_efficiency=discharge_efficiency,
+            max_battery_capacity_kwh=max_battery_capacity_kwh,
+            min_battery_capacity_kwh=min_battery_capacity_kwh,
+            allowed_cycles=allowed_cycles,
+            length_of_timestep_hour=0.25
+        )
+        add_maximize_revenue(
+            solver=solver,
+            price_schedule_df=price_schedule_df,
+            charge_schedule=charge_power,
+            discharge_schedule=discharge_power,
+            length_of_timestep_hour=0.25
+        )
+
+        solver.Solve()
+        optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
+        optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
+        optimal_revenue = solver.Objective().Value()
+        optimal_cycles = [cycles[i].solution_value() for i in range(0, len(cycles))]
+
+        self.assertListEqual([0.0, 4000.0, 0.0, 0.0], optimal_charge_power)
+        self.assertListEqual([0.0, 0.0, 4000.0, 0.0], optimal_discharge_power)
+        self.assertEqual(100.0, optimal_revenue)
+        self.assertEqual(0.5, optimal_cycles[-1])
+
+    def test_simple_case_single_charge_and_discharge_vice_versa(self):
+        price_schedule_list = [
+            {
+                'charge_price': -50.0,
+                'discharge_price': -50.0
+            },
+            {
+                'charge_price': -100.0,
+                'discharge_price': -100.0
+            },
+            {
+                'charge_price': 0.0,
+                'discharge_price': 0.0
+            },
+            {
+                'charge_price': -49.0,  # Equal numbers are not really noticed until cycles kick in
+                'discharge_price': -49.0
+            }
+        ]
+        price_schedule_df = pd.DataFrame(price_schedule_list)
+        max_battery_capacity_kwh = 2000
+        min_battery_capacity_kwh = 0
+        initial_battery_capacity_kwh = 1000
+        max_power_kw = 4000
+        charge_efficiency = 1.0
+        discharge_efficiency = 1.0
+        allowed_cycles = 20
+        solver = pywraplp.Solver('TEST SOLVER', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+        charge_power, discharge_power = add_power_schedules_to_solver(
+            solver=solver,
+            schedule_length=len(price_schedule_df),
+            max_power_kw=max_power_kw,
+        )
+        capacity, cycles = add_capacity_and_cycles_to_solver(
+            solver=solver,
+            charge_power=charge_power,
+            discharge_power=discharge_power,
+            initial_battery_capacity_kwh=initial_battery_capacity_kwh,
+            final_battery_capacity_kwh=initial_battery_capacity_kwh,
+            charge_efficiency=charge_efficiency,
+            discharge_efficiency=discharge_efficiency,
+            max_battery_capacity_kwh=max_battery_capacity_kwh,
+            min_battery_capacity_kwh=min_battery_capacity_kwh,
+            allowed_cycles=allowed_cycles,
+            length_of_timestep_hour=0.25
+        )
+        add_maximize_revenue(
+            solver=solver,
+            price_schedule_df=price_schedule_df,
+            charge_schedule=charge_power,
+            discharge_schedule=discharge_power,
+            length_of_timestep_hour=0.25
+        )
+
+        solver.Solve()
+        optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
+        optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
+        optimal_revenue = solver.Objective().Value()
+
+        self.assertListEqual([0.0, 4000.0, 0.0, 0.0], optimal_charge_power)
+        self.assertListEqual([0.0, 0.0, 4000.0, 0.0], optimal_discharge_power)
+        self.assertEqual(100.0, optimal_revenue)
+
+    def test_influence_of_max_power_kw(self):
+        price_schedule_list = [
+            {
+                'charge_price': 50.0,
+                'discharge_price': 50.0
+            },
+            {
+                'charge_price': 0.0,
+                'discharge_price': 0.0
+            },
+            {
+                'charge_price': 100.0,
+                'discharge_price': 100.0
+            },
+            {
+                'charge_price': 51.0,  # Equal numbers are not really noticed until cycles kick in
+                'discharge_price': 51.0
+            }
+        ]
+        price_schedule_df = pd.DataFrame(price_schedule_list)
+        max_battery_capacity_kwh = 2000
+        initial_battery_capacity_kwh = 1000
+        min_battery_capacity_kwh = 0
+        max_power_kw = 2000
+        charge_efficiency = 1.0
+        discharge_efficiency = 1.0
+        allowed_cycles = 20
+
+        solver = pywraplp.Solver('TEST SOLVER', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+        charge_power, discharge_power = add_power_schedules_to_solver(
+            solver=solver,
+            schedule_length=len(price_schedule_df),
+            max_power_kw=max_power_kw,
+        )
+        capacity, cycles = add_capacity_and_cycles_to_solver(
+            solver=solver,
+            charge_power=charge_power,
+            discharge_power=discharge_power,
+            initial_battery_capacity_kwh=initial_battery_capacity_kwh,
+            final_battery_capacity_kwh=initial_battery_capacity_kwh,
+            charge_efficiency=charge_efficiency,
+            discharge_efficiency=discharge_efficiency,
+            max_battery_capacity_kwh=max_battery_capacity_kwh,
+            min_battery_capacity_kwh=min_battery_capacity_kwh,
+            allowed_cycles=allowed_cycles,
+            length_of_timestep_hour=0.25
+        )
+        add_maximize_revenue(
+            solver=solver,
+            price_schedule_df=price_schedule_df,
+            charge_schedule=charge_power,
+            discharge_schedule=discharge_power,
+            length_of_timestep_hour=0.25
+        )
+
+        solver.Solve()
+        optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
+        optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
+        optimal_revenue = solver.Objective().Value()
+
+        self.assertListEqual([2000.0, 2000.0, 0.0, 0.0], optimal_charge_power)
+        self.assertListEqual([0.0, 0.0, 2000.0, 2000.0], optimal_discharge_power)
+        self.assertEqual(50.50, optimal_revenue)
+
+    def test_influence_of_max_battery_capacity_kwh(self):
+        price_schedule_list = [
+            {
+                'charge_price': 50.0,
+                'discharge_price': 50.0
+            },
+            {
+                'charge_price': 0.0,
+                'discharge_price': 0.0
+            },
+            {
+                'charge_price': 100.0,
+                'discharge_price': 100.0
+            },
+            {
+                'charge_price': 51.0,  # Equal numbers are not really noticed until cycles kick in
+                'discharge_price': 51.0
+            }
+        ]
+        price_schedule_df = pd.DataFrame(price_schedule_list)
+
+        max_battery_capacity_kwh = 4000
+        initial_battery_capacity_kwh = 2000
+        min_battery_capacity_kwh = 0
+        max_power_kw = 4000
+        charge_efficiency = 1.0
+        discharge_efficiency = 1.0
+        allowed_cycles = 20
+
+        solver = pywraplp.Solver('TEST SOLVER', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+        charge_power, discharge_power = add_power_schedules_to_solver(
+            solver=solver,
+            schedule_length=len(price_schedule_df),
+            max_power_kw=max_power_kw,
+        )
+        capacity, cycles = add_capacity_and_cycles_to_solver(
+            solver=solver,
+            charge_power=charge_power,
+            discharge_power=discharge_power,
+            initial_battery_capacity_kwh=initial_battery_capacity_kwh,
+            final_battery_capacity_kwh=initial_battery_capacity_kwh,
+            charge_efficiency=charge_efficiency,
+            discharge_efficiency=discharge_efficiency,
+            max_battery_capacity_kwh=max_battery_capacity_kwh,
+            min_battery_capacity_kwh=min_battery_capacity_kwh,
+            allowed_cycles=allowed_cycles,
+            length_of_timestep_hour=0.25
+        )
+        add_maximize_revenue(
+            solver=solver,
+            price_schedule_df=price_schedule_df,
+            charge_schedule=charge_power,
+            discharge_schedule=discharge_power,
+            length_of_timestep_hour=0.25
+        )
+
+        solver.Solve()
+        optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
+        optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
+        optimal_revenue = solver.Objective().Value()
+        optimal_cycles = [cycles[i].solution_value() for i in range(0, len(cycles))]
+
+        self.assertListEqual([4000.0, 4000.0, 0.0, 0.0], optimal_charge_power)
+        self.assertListEqual([0.0, 0.0, 4000.0, 4000.0], optimal_discharge_power)
+        self.assertEqual(101.0, optimal_revenue)
+
+    def test_influence_of_charge_efficiency(self):
+        price_schedule_list = [
+            {
+                'charge_price': 49.0,
+                'discharge_price': 49.0
+            },
+            {
+                'charge_price': 0.0,
+                'discharge_price': 0.0
+            },
+            {
+                'charge_price': 100.0,
+                'discharge_price': 100.0
+            },
+            {
+                'charge_price': 51.0,  # Equal numbers are not really noticed until cycles kick in
+                'discharge_price': 51.0
+            }
+        ]
+        price_schedule_df = pd.DataFrame(price_schedule_list)
+        max_battery_capacity_kwh = 2000
+        initial_battery_capacity_kwh = 1000
+        min_battery_capacity_kwh = 0
+        max_power_kw = 4000
+        charge_efficiency = 0.5
+        discharge_efficiency = 1.0
+        allowed_cycles = 20
+
+        solver = pywraplp.Solver('TEST SOLVER', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+        charge_power, discharge_power = add_power_schedules_to_solver(
+            solver=solver,
+            schedule_length=len(price_schedule_df),
+            max_power_kw=max_power_kw,
+        )
+        capacity, cycles = add_capacity_and_cycles_to_solver(
+            solver=solver,
+            charge_power=charge_power,
+            discharge_power=discharge_power,
+            initial_battery_capacity_kwh=initial_battery_capacity_kwh,
+            final_battery_capacity_kwh=initial_battery_capacity_kwh,
+            charge_efficiency=charge_efficiency,
+            discharge_efficiency=discharge_efficiency,
+            max_battery_capacity_kwh=max_battery_capacity_kwh,
+            min_battery_capacity_kwh=min_battery_capacity_kwh,
+            allowed_cycles=allowed_cycles,
+            length_of_timestep_hour=0.25
+        )
+        add_maximize_revenue(
+            solver=solver,
+            price_schedule_df=price_schedule_df,
+            charge_schedule=charge_power,
+            discharge_schedule=discharge_power,
+            length_of_timestep_hour=0.25
+        )
+
+        solver.Solve()
+        optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
+        optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
+        optimal_revenue = solver.Objective().Value()
+        optimal_cycles = [cycles[i].solution_value() for i in range(0, len(cycles))]
+
+        self.assertListEqual([4000.0, 4000.0, 0.0, 0.0], optimal_charge_power)
+        self.assertListEqual([0.0, 0.0, 4000.0, 0.0], optimal_discharge_power)
+        self.assertEqual(51.0, optimal_revenue)
+        self.assertEqual(0.5, optimal_cycles[-1])  # Cycles aren't influenced by RTE
 
 
 if __name__ == '__main__':
