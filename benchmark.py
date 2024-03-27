@@ -1,5 +1,7 @@
-from ortools.linear_solver import pywraplp
+"""The initial version of the battery trading benchmark has been coded without additional features in this file"""
+
 import pandera as pa
+from ortools.linear_solver import pywraplp
 
 PriceScheduleDataFrame = pa.DataFrameSchema({
     'charge_price': pa.Column(pa.Float),
@@ -7,8 +9,10 @@ PriceScheduleDataFrame = pa.DataFrameSchema({
 })
 
 
-def add_power_schedules_to_solver(solver: pywraplp.Solver, schedule_length: int,
-                                  max_power_kw: int) -> (list[pywraplp.Variable], list[pywraplp.Variable]):
+def add_power_schedules_to_solver(solver: pywraplp.Solver,
+                                  schedule_length: int,
+                                  max_power_kw: int
+                                  ) -> (list[pywraplp.Variable], list[pywraplp.Variable]):
     """
     Method to add a charge_power and discharge_power schedule to the solver object,
       the power schedules will be limted to the offered max_power_kw
@@ -17,7 +21,7 @@ def add_power_schedules_to_solver(solver: pywraplp.Solver, schedule_length: int,
     :param schedule_length: Integer specifying the length the power schedules should have
     :param max_power_kw: Integer specifying the max power the power schedules can have
 
-    :return: (list, list) 2 lists representing charge_power and discharge_power
+    :returns: (list, list) 2 lists representing charge_power and discharge_power
     """
     charge_power = [solver.IntVar(0, max_power_kw, f'charge_power_period_{i}')
                     for i in range(0, schedule_length)]
@@ -40,10 +44,10 @@ def add_capacity_and_cycles_to_solver(solver: pywraplp.Solver,
                                       allowed_cycles: float = 1.5
                                       ) -> (list[pywraplp.Variable], list[pywraplp.Variable]):
     """
-    Method to define a capacity schedule to the solver object,
-      the capacity schedules will be limited by min and max battery_capacity_kwh,
-      the schedule will start at initial_battery_capacity_kwh and end at final_battery_capacity_kwh
-      length_of_timestep_hour, charge_efficiency and discharge_effciency are used to convert power to capacity
+    This method adds capacity and cycle list to the solver object.
+    The capacity schedule will be limited by min and max battery_capacity_kwh,
+    The schedule will start at initial_battery_capacity_kwh and end at final_battery_capacity_kwh
+    length_of_timestep_hour, charge_efficiency and discharge_efficiency are used to convert power to capacity
 
     :param solver: a pywraplp.Solver instance that the constraints should be added to
     :param charge_power: A charge power schedule specifying the amount of charge power per timestep
@@ -53,8 +57,8 @@ def add_capacity_and_cycles_to_solver(solver: pywraplp.Solver,
     :param initial_battery_capacity_kwh: An integer specifying the initial capacity of the system
     :param final_battery_capacity_kwh: An integer specifying the final capacity of the system
     :param length_of_timestep_hour: A float specifying how to convert the power to capacity
-    :param charge_efficiency: A float specifying how much chargepower is succesfully transformed into capacity
-    :param discharge_efficiency: A float specifying how much discharge power is succesfully transformed into capacity
+    :param charge_efficiency: A float specifying how much charge_power is successfully transformed into capacity
+    :param discharge_efficiency: A float specifying how much discharge power is successfully transformed into capacity
     :param allowed_cycles: A float specifying how many cycles are allowed to be made
 
     :return: capacity, a list representing the capacity in a battery at timestep i
