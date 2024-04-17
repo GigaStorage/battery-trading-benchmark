@@ -82,6 +82,7 @@ min_battery_capacity_kwh = 0
 entsoe_area = entsoe.Area['NL']
 
 # 3. Define the pandas Timestamps the prices will be taken of
+st.write(f"## Choose your date")
 default_date = dt.date.today() - dt.timedelta(days=5)
 day_on_dayahead = st.date_input("Date", value=default_date)
 start = pd.Timestamp(day_on_dayahead.strftime("%Y%m%d"), tz=entsoe_area.tz)
@@ -271,7 +272,7 @@ st.write(f"""
 | max_battery_capacity_kwh     	| kWh      	| The maximum stored capacity in your BESS, in kWh                         |
 | allowed_cycles 	| # 	| The number of times your BESS is allowed to charge and discharge between 0% and 100% SoC |
 | charge_efficiency            	| %        	| The percentage of capacity that is stored when charging                  |
-| discahrge_efficiency         	| %        	| The percentage of capacity that is released when discharging             |
+| discharge_efficiency         	| %        	| The percentage of capacity that is released when discharging             |
 | initial_battery_capacity_kwh 	| kWh      	| The initial capacity of the BESS at the start of the simulation          |
 | final_battery_capacity_kwh   	| kWh      	| The final capacity of the BESS at the end of the simulation              |
 """)
