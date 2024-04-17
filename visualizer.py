@@ -3,7 +3,7 @@ import datetime as dt
 import numpy as np
 from matplotlib import pyplot as plt
 
-from benchmark import PriceScheduleDataFrame
+from model import PriceScheduleDataFrame
 
 
 def plot_power_schedule_capacity_and_prices(

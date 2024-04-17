@@ -12,7 +12,7 @@ Create a virtual python environment and install packages
 
 Run the Streamlit app locally
 
-    streamlit run .\streamlit_app.py
+    streamlit run .\main.py
 
 ## License
 
