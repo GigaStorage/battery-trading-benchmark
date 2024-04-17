@@ -618,4 +618,9 @@ Not only for other energy markets, but with anybody who is interested in benchma
 The model built in this article as well as the source code of this article is available at
  [GigaStorage/battery-trading-benchmark]({REPOSITORY_HOME_PAGE}).
 Feel free to dive into our [open-source community]({REPOSITORY_HOME_PAGE}).
+
+### Change Log
+
+* 17-04-2024: [PR #4 [ADD] Streamlit Blog Post introducing
+ the Battery Trading Benchmark](https://github.com/GigaStorage/battery-trading-benchmark/pull/4)
 """)
