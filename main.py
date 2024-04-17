@@ -102,12 +102,17 @@ PriceScheduleDataFrame.validate(dayahead_price_schedule)
 # The assumed length of the dayahead market is 1 hour
 dayahead_length_of_timestep_hour = 1
 
-entsoe_imbalance_prices = client.query_imbalance_prices(entsoe_area.name, start=start, end=end)
-imbalance_price_schedule = entsoe_imbalance_prices.rename({
-    'Short': 'charge_price',
-    'Long': 'discharge_price',
-}, axis=1)
-PriceScheduleDataFrame.validate(imbalance_price_schedule)
+try:
+    entsoe_imbalance_prices = client.query_imbalance_prices(entsoe_area.name, start=start, end=end)
+    imbalance_price_schedule = entsoe_imbalance_prices.rename({
+        'Short': 'charge_price',
+        'Long': 'discharge_price',
+    }, axis=1)
+    PriceScheduleDataFrame.validate(imbalance_price_schedule)
+    flag_no_imbalance_data = False
+except entsoe.NoMatchingDataError:
+    imbalance_price_schedule = pd.DataFrame()
+    flag_no_imbalance_data = True
 
 # ---------- METADATA OF BENCHMARK ----------
 round_trip_efficiency = charge_efficiency * discharge_efficiency * 100
@@ -119,7 +124,8 @@ else:
 
 # ---------- ADDITIONAL VARIABLES USED IN PLOTS ----------
 dayahead_x_axis = dayahead_price_schedule.index.tolist()
-imbalance_x_axis = imbalance_price_schedule.index.tolist()
+if not flag_no_imbalance_data:
+    imbalance_x_axis = imbalance_price_schedule.index.tolist()
 
 # ---------- DAYAHEAD MARKET ----------
 solver = pywraplp.Solver(
@@ -188,69 +194,73 @@ else:
 
 
 # ---------- IMBALANCE MARKET ----------
-solver = pywraplp.Solver(
-    'IMBALANCE MARKET',
-    pywraplp.Solver.GLOP_LINEAR_PROGRAMMING
-)
-charge_power, discharge_power = add_power_schedules_to_solver(
-    solver=solver,
-    schedule_length=len(imbalance_price_schedule),
-    max_power_kw=max_power_kw,
-)
-capacity, cycles = add_capacity_and_cycles_to_solver(
-    solver=solver,
-    charge_power=charge_power,
-    discharge_power=discharge_power,
-    min_battery_capacity_kwh=min_battery_capacity_kwh,
-    max_battery_capacity_kwh=max_battery_capacity_kwh,
-    initial_battery_capacity_kwh=initial_battery_capacity_kwh,
-    final_battery_capacity_kwh=final_battery_capacity_kwh,
-    length_of_timestep_hour=0.25,
-    charge_efficiency=charge_efficiency,
-    discharge_efficiency=discharge_efficiency,
-    allowed_cycles=allowed_cycles
-)
-add_maximize_revenue(
-    solver=solver,
-    price_schedule_df=imbalance_price_schedule,
-    length_of_timestep_hour=0.25,
-    charge_schedule=charge_power,
-    discharge_schedule=discharge_power,
-)
-
-# Solve problem
-status = solver.Solve()
-
-# If an optimal solution has been found, print results
-if status == pywraplp.Solver.OPTIMAL:
-    # Retrieve metadata from the optimisation
-    imbalance_revenue = solver.Objective().Value()
-    optimiser_time = solver.wall_time()
-    optimiser_iterations = solver.iterations()
-
-    # Parse the results into lists
-    imbalance_revenue = solver.Objective().Value()
-    optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
-    optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
-    optimal_capacity = [capacity[i].solution_value() for i in range(0, len(capacity))]
-    optimal_cycles = [cycles[i].solution_value() for i in range(0, len(cycles))]
-    average_state_of_charge = sum(optimal_capacity) / len(optimal_capacity)
-    average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
-
-    title = f"Battery Trading Benchmark - Imbalance {date_in_title} {country_name}\n" \
-            f"{max_power_kw:,.0f} kW| {max_battery_capacity_kwh:,.0f} kWh, {optimal_cycles[-1]:.2f} Cycles\n" \
-            f"Revenue: €{imbalance_revenue:,.2f}\n" \
-            f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
-    imbalance_figure = plot_power_schedule_capacity_and_prices(
-        price_schedule_df=imbalance_price_schedule,
-        x_axis=imbalance_x_axis,
-        charge_schedule=optimal_charge_power,
-        discharge_schedule=optimal_discharge_power,
-        capacity=optimal_capacity,
-        title=title
+if not flag_no_imbalance_data:
+    solver = pywraplp.Solver(
+        'IMBALANCE MARKET',
+        pywraplp.Solver.GLOP_LINEAR_PROGRAMMING
     )
+    charge_power, discharge_power = add_power_schedules_to_solver(
+        solver=solver,
+        schedule_length=len(imbalance_price_schedule),
+        max_power_kw=max_power_kw,
+    )
+    capacity, cycles = add_capacity_and_cycles_to_solver(
+        solver=solver,
+        charge_power=charge_power,
+        discharge_power=discharge_power,
+        min_battery_capacity_kwh=min_battery_capacity_kwh,
+        max_battery_capacity_kwh=max_battery_capacity_kwh,
+        initial_battery_capacity_kwh=initial_battery_capacity_kwh,
+        final_battery_capacity_kwh=final_battery_capacity_kwh,
+        length_of_timestep_hour=0.25,
+        charge_efficiency=charge_efficiency,
+        discharge_efficiency=discharge_efficiency,
+        allowed_cycles=allowed_cycles
+    )
+    add_maximize_revenue(
+        solver=solver,
+        price_schedule_df=imbalance_price_schedule,
+        length_of_timestep_hour=0.25,
+        charge_schedule=charge_power,
+        discharge_schedule=discharge_power,
+    )
+
+    # Solve problem
+    status = solver.Solve()
+
+    # If an optimal solution has been found, print results
+    if status == pywraplp.Solver.OPTIMAL:
+        # Retrieve metadata from the optimisation
+        imbalance_revenue = solver.Objective().Value()
+        optimiser_time = solver.wall_time()
+        optimiser_iterations = solver.iterations()
+
+        # Parse the results into lists
+        imbalance_revenue = solver.Objective().Value()
+        imbalance_revenue = f"{imbalance_revenue:, .2f}"
+        optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
+        optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
+        optimal_capacity = [capacity[i].solution_value() for i in range(0, len(capacity))]
+        optimal_cycles = [cycles[i].solution_value() for i in range(0, len(cycles))]
+        average_state_of_charge = sum(optimal_capacity) / len(optimal_capacity)
+        average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
+
+        title = f"Battery Trading Benchmark - Imbalance {date_in_title} {country_name}\n" \
+                f"{max_power_kw:,.0f} kW| {max_battery_capacity_kwh:,.0f} kWh, {optimal_cycles[-1]:.2f} Cycles\n" \
+                f"Revenue: €{imbalance_revenue:,.2f}\n" \
+                f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
+        imbalance_figure = plot_power_schedule_capacity_and_prices(
+            price_schedule_df=imbalance_price_schedule,
+            x_axis=imbalance_x_axis,
+            charge_schedule=optimal_charge_power,
+            discharge_schedule=optimal_discharge_power,
+            capacity=optimal_capacity,
+            title=title
+        )
+    else:
+        print('The solver could not find an optimal solution.')
 else:
-    print('The solver could not find an optimal solution.')
+    imbalance_revenue = "No Imbalance Market Data"
 
 st.write(f"""
 ## Battery Trading Benchmark {date_in_title} - {max_power_kw:,.0f} kW|{max_battery_capacity_kwh:,.0f}kWh
@@ -260,7 +270,7 @@ The Battery Trading Benchmark calculates the mathematical optimum of a
 | Energy Market | Revenue 	|
 |---	        |---	|
 | Dayahead 	    | {dayahead_revenue:,.2f} 	|
-| Imbalance     | {imbalance_revenue:,.2f} 	|
+| Imbalance     | {imbalance_revenue} 	|
 | ... 	        |  	|
 """)
 
@@ -285,4 +295,7 @@ st.pyplot(dayahead_figure)
 st.write(f"""
 ## Imbalance
 """)
-st.pyplot(imbalance_figure)
+if flag_no_imbalance_data:
+    st.write(imbalance_revenue)
+else:
+    st.pyplot(imbalance_figure)
