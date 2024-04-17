@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 from ortools.linear_solver import pywraplp
 
-from benchmark import add_power_schedules_to_solver, add_capacity_and_cycles_to_solver, add_maximize_revenue
+from model import add_power_schedules_to_solver, add_capacity_and_cycles_to_solver, add_maximize_revenue
 
 
 class TestBenchmark(unittest.TestCase):

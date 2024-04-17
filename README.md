@@ -5,6 +5,15 @@ It aims to be the market standard in evaluating an ESS system on different energ
 This tool should become a powerful, open source and intuitive manner to evaluate any kind of ESS on the electricity market.
 This tool is maintained by [GIGA Storage][GIGA Home Page], a company that specialises in investing, realising and operating large-scale (Battery) Energy Storage Systems in The Netherlands and Europe.
 
+## Running the BatteryTradingBenchmark
+Create a virtual python environment and install packages
+
+    pip3 install -r requirements.txt
+
+Run the Streamlit app locally
+
+    streamlit run .\main.py
+
 ## License
 
 ## Discussion and Development
