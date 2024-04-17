@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
 
+from menu import GIGA_HOME_PAGE, REPOSITORY_HOME_PAGE, menu
 from model import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
     add_capacity_and_cycles_to_solver
 from visualizer import plot_power_schedule_capacity_and_prices
@@ -33,9 +34,7 @@ st.set_page_config(
     page_icon=':battery:'
 )
 
-GIGA_HOME_PAGE = "https://giga-storage.com/en/"
-REPOSITORY_HOME_PAGE = "https://github.com/GigaStorage/battery-trading-benchmark"
-
+menu()
 st.write(f"""
 # Battery Trading Benchmark
 This is an open source tool to determine the optimal value a Energy Storage System (ESS)
