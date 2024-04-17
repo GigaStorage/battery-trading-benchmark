@@ -13,7 +13,7 @@ from visualizer import plot_power_schedule_capacity_and_prices
 from main import ENTSOE_API_KEY
 
 st.set_page_config(
-    page_title="Battery Trading Benchmark",
+    page_title="Blog Post One",
     page_icon=':battery:',
     layout="wide",
 )
