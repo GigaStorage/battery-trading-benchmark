@@ -6,7 +6,8 @@ import streamlit as st
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
 
-from benchmark import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
+from menu import GIGA_HOME_PAGE, REPOSITORY_HOME_PAGE, menu
+from model import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
     add_capacity_and_cycles_to_solver
 from visualizer import plot_power_schedule_capacity_and_prices
 from main import ENTSOE_API_KEY
@@ -17,9 +18,7 @@ st.set_page_config(
     layout="wide",
 )
 
-GIGA_HOME_PAGE = "https://giga-storage.com/en/"
-REPOSITORY_HOME_PAGE = "https://github.com/GigaStorage/battery-trading-benchmark"
-
+menu()
 st.write(f"""
 # Calculating the mathematical optimum of (Battery) Energy Storage System on the Dutch Dayahead market
 
