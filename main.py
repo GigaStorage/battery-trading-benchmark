@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
 
-from benchmark import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
+from model import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
     add_capacity_and_cycles_to_solver
 from visualizer import plot_power_schedule_capacity_and_prices
 
@@ -38,10 +38,12 @@ REPOSITORY_HOME_PAGE = "https://github.com/GigaStorage/battery-trading-benchmark
 
 st.write(f"""
 # Battery Trading Benchmark
-This is an open source tool to determine the optimal value a Energy Storage System (ESS) can earn on a specific electricity market.
+This is an open source tool to determine the optimal value a Energy Storage System (ESS)
+ can earn on a specific electricity market.
 It aims to be the market standard in evaluating an ESS system on different energy markets.
 This tool is maintained by [GIGA Storage]({GIGA_HOME_PAGE}), but we invite every one to collaborate with us in
  our [open-source community]({REPOSITORY_HOME_PAGE}) under the Apache License 2.0.
+Market data is retrieved from the [ENTSO-E Transparency Platform](https://github.com/EnergieID/entsoe-py).
 
 ## Define your BESS
 """)
@@ -250,12 +252,28 @@ else:
     print('The solver could not find an optimal solution.')
 
 st.write(f"""
-## Battery Trading Benchmark {date_in_title}
+## Battery Trading Benchmark {date_in_title} - {max_power_kw:,.0f} kW|{max_battery_capacity_kwh:,.0f}kWh
+The Battery Trading Benchmark calculates the mathematical optimum of a
+ {max_power_kw:,.0f} kW|{max_battery_capacity_kwh:,.0f}kWh system dispatched on an energy market.
+
 | Energy Market | Revenue 	|
 |---	        |---	|
 | Dayahead 	    | {dayahead_revenue:,.2f} 	|
 | Imbalance     | {imbalance_revenue:,.2f} 	|
 | ... 	        |  	|
+""")
+
+st.write(f"""
+## Parameters
+| **Parameter**                	| **Unit** 	| **Description**                                                          |
+|------------------------------	|----------	|------------------------------------------------------------------------- |
+| max_power_kw                 	| kW       	| The maximum power output of your BESS, in kW                             |
+| max_battery_capacity_kwh     	| kWh      	| The maximum stored capacity in your BESS, in kWh                         |
+| allowed_cycles 	| # 	| The number of times your BESS is allowed to charge and discharge between 0% and 100% SoC |
+| charge_efficiency            	| %        	| The percentage of capacity that is stored when charging                  |
+| discahrge_efficiency         	| %        	| The percentage of capacity that is released when discharging             |
+| initial_battery_capacity_kwh 	| kWh      	| The initial capacity of the BESS at the start of the simulation          |
+| final_battery_capacity_kwh   	| kWh      	| The final capacity of the BESS at the end of the simulation              |
 """)
 
 st.write(f"""
