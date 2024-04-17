@@ -237,7 +237,7 @@ if not flag_no_imbalance_data:
 
         # Parse the results into lists
         imbalance_revenue = solver.Objective().Value()
-        imbalance_revenue = f"{imbalance_revenue:, .2f}"
+        imbalance_revenue = f"{imbalance_revenue:,.2f}"
         optimal_charge_power = [charge_power[i].solution_value() for i in range(0, len(charge_power))]
         optimal_discharge_power = [discharge_power[i].solution_value() for i in range(0, len(discharge_power))]
         optimal_capacity = [capacity[i].solution_value() for i in range(0, len(capacity))]
@@ -247,7 +247,7 @@ if not flag_no_imbalance_data:
 
         title = f"Battery Trading Benchmark - Imbalance {date_in_title} {country_name}\n" \
                 f"{max_power_kw:,.0f} kW| {max_battery_capacity_kwh:,.0f} kWh, {optimal_cycles[-1]:.2f} Cycles\n" \
-                f"Revenue: €{imbalance_revenue:,.2f}\n" \
+                f"Revenue: €{imbalance_revenue}\n" \
                 f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
         imbalance_figure = plot_power_schedule_capacity_and_prices(
             price_schedule_df=imbalance_price_schedule,
