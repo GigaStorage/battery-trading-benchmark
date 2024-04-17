@@ -13,21 +13,22 @@ from visualizer import plot_power_schedule_capacity_and_prices
 from main import ENTSOE_API_KEY
 
 st.set_page_config(
-    page_title="Blog Post One",
+    page_title="Blogpost One Dutch Dayahead Market",
     page_icon=':battery:',
     layout="wide",
 )
 
 menu()
 st.write(f"""
-# Calculating the mathematical optimum of (Battery) Energy Storage System on the Dutch Dayahead market
+# Calculating the mathematical optimum of a (Battery) Energy Storage System on the Dutch Dayahead market
 
 _Author: Jip Rietveld_
 [![Linkedin](https://i.stack.imgur.com/gVE0j.png)](https://www.linkedin.com/in/jip-rietveld-9720/)
 [![GitHub](https://i.stack.imgur.com/tskMh.png)](https://github.com/Jipje)
-\t - \t_IT Director [GIGA Storage]({GIGA_HOME_PAGE})_
+\t - \t_IT Director [GIGA Storage]({GIGA_HOME_PAGE})_.
 [![Linkedin](https://i.stack.imgur.com/gVE0j.png)](https://www.linkedin.com/company/gigastorage/)
 [![GitHub](https://i.stack.imgur.com/tskMh.png)](https://github.com/GigaStorage)
+\t - \t17-04-2024
 
 Energy storage plays a crucial role in the energy transition towards a more renewable future.
 With the growing focus on renewable energy generation like solar power and wind power, system operators are
