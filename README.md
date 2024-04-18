@@ -9,9 +9,9 @@ This tool is maintained by [GIGA Storage][GIGA Home Page], a company that specia
 1. Create a virtual python environment and install packages
 
 
-    pip3 install -r requirements.txt
+    pip install -r requirements.txt
 
-2. Create your Streamlit secrets file (`.streamlit/secrets.toml`) using the `.streamlit/secrets.toml.example` file as a template.
+2. Create your Streamlit secrets file (`.streamlit/secrets.toml`) using the `.streamlit/secrets.toml.example` file as a template
 3. Run the Streamlit app locally
 
 
