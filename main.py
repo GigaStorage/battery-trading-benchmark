@@ -49,10 +49,10 @@ Market data is retrieved from the [ENTSO-E Transparency Platform](https://github
 # 1. Define the limits of your BESS
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    max_power_kw = st.number_input("BESS Power (kW)", 100, 10000, value=1000, step=100)
-    allowed_cycles = st.number_input("Allowed Cycles", 0.0, 1000.0, value=1.5)
+    max_power_kw = st.number_input("BESS Power (kW)", min_value=1, value=1000, step=100)
+    allowed_cycles = st.number_input("Allowed Cycles", min_value=0.0, value=1.5)
 with col2:
-    max_battery_capacity_kwh = st.number_input("BESS Capacity (kWh)", 100, 40000, value=2000, step=100)
+    max_battery_capacity_kwh = st.number_input("BESS Capacity (kWh)", min_value=1, value=2000, step=100)
 with col3:
     charge_efficiency = st.number_input("Charge Efficiency (%)", 0, 100, value=93)
     charge_efficiency = charge_efficiency / 100

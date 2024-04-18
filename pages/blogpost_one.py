@@ -90,7 +90,7 @@ with col1:
 with col2:
     max_battery_capacity_kwh = st.number_input("BESS Capacity (kWh)", min_value=1, value=2000, step=100)
 with col3:
-    allowed_cycles = st.number_input("Allowed Cycles", 0.0, 1000.0, value=1.5)
+    allowed_cycles = st.number_input("Allowed Cycles", min_value=0.0, value=1.5)
 with col4:
     charge_efficiency = st.number_input("Charge Efficiency (%)", 0, 100, value=93)
     charge_efficiency = charge_efficiency / 100
