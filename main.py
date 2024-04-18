@@ -3,7 +3,6 @@ import os
 
 import pandas as pd
 import streamlit as st
-from dotenv import load_dotenv
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
 
@@ -26,8 +25,7 @@ from visualizer import plot_power_schedule_capacity_and_prices
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load_dotenv()  # take environment variables from .env.
-ENTSOE_API_KEY = os.getenv("ENTSOE_API_KEY")
+ENTSOE_API_KEY = os.environ["ENTSOE_API_KEY"]
 
 st.set_page_config(
     page_title="Battery Trading Benchmark",

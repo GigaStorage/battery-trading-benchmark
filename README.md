@@ -6,11 +6,14 @@ This tool should become a powerful, open source and intuitive manner to evaluate
 This tool is maintained by [GIGA Storage][GIGA Home Page], a company that specialises in investing, realising and operating large-scale (Battery) Energy Storage Systems in The Netherlands and Europe.
 
 ## Running the BatteryTradingBenchmark
-Create a virtual python environment and install packages
+1. Create a virtual python environment and install packages
 
-    pip3 install -r requirements.txt
 
-Run the Streamlit app locally
+    pip install -r requirements.txt
+
+2. Create your Streamlit secrets file (`.streamlit/secrets.toml`) using the `.streamlit/secrets.toml.example` file as a template
+3. Run the Streamlit app locally
+
 
     streamlit run .\main.py
 
