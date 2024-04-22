@@ -5,7 +5,6 @@ import pandas as pd
 from requests.exceptions import ConnectionError
 import streamlit as st
 from entsoe import entsoe, EntsoePandasClient
-from requests.exceptions import ConnectionError
 from ortools.linear_solver import pywraplp
 
 from menu import GIGA_HOME_PAGE, REPOSITORY_HOME_PAGE, menu, ENTSOE_GITHUB_HOME_PAGE
@@ -266,16 +265,22 @@ if not flag_no_imbalance_data:
 else:
     imbalance_revenue = "No Imbalance Market Data"
 
-st.write(f"""
-## Battery Trading Benchmark {date_in_title} - {max_power_kw:,.0f} kW|{max_battery_capacity_kwh:,.0f}kWh
-The Battery Trading Benchmark calculates the mathematical optimum of a
- {max_power_kw:,.0f} kW|{max_battery_capacity_kwh:,.0f}kWh system dispatched on an energy market.
+power_text = f"{max_power_kw / 1000:,.1f} MW" if max_power_kw >= 1000 else f"{max_power_kw:,.0f} kW"
+if max_battery_capacity_kwh >= 1000:
+    capacity_text = f"{max_battery_capacity_kwh / 1000:,.1f} MWh"
+else:
+    capacity_text = f"{max_battery_capacity_kwh:,.0f} kWh"
 
-| Energy Market | Revenue 	|
-|---	        |---	|
+st.write(f"""
+## Battery Trading Benchmark {date_in_title}
+The Battery Trading Benchmark calculates the **mathematical optimum** of a
+ {power_text}|{capacity_text} system dispatched on a single energy market.
+
+| Energy Market | Revenue                	|
+|---	        |---	                    |
 | Dayahead 	    | {dayahead_revenue:,.2f} 	|
-| Imbalance     | {imbalance_revenue} 	|
-| ... 	        |  	|
+| Imbalance     | {imbalance_revenue} 	    |
+| ... 	        |  	                        |
 """)
 
 st.write(f"""
