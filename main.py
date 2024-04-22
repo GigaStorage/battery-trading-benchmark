@@ -41,7 +41,7 @@ The Battery Trading Benchmark is an an open source tool developed to benchmark t
 It aims to be the market standard in evaluating an ESS system on different energy markets.
 
 Feel free to read additional documentation on the methodology of this benchmark under the
- [description](/description) section. 
+ [description](/description) section.
 This version calculates the **mathematical optimum** an ESS can earn on a **single** market.
 
 This tool is maintained by [GIGA Storage]({GIGA_HOME_PAGE}), but we invite every one to collaborate with us in

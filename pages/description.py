@@ -29,7 +29,7 @@ Or an ESS can sell their flexible capabilities directly to system operators in s
 
 All of these considerations are constantly shifting and changing, influenced by the time of day,
  quality of forecasts as well as maintenance blocks of electricity plants throughout the area the ESS is active in.
-To scope the Battery Trading Benchmark, the current version focuses on the earnings a ESS can make 
+To scope the Battery Trading Benchmark, the current version focuses on the earnings a ESS can make
  in a vacuum, on a single electricity market.
 To further scope the benchmark, forecast errors are left out of the equation by assuming that the prices of the market
  the ESS is active on are perfect foresight.
