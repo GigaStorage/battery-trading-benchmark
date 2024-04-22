@@ -2,6 +2,7 @@ import datetime as dt
 import os
 
 import pandas as pd
+from requests.exceptions import ConnectionError
 import streamlit as st
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
@@ -49,10 +50,10 @@ Market data is retrieved from the [ENTSO-E Transparency Platform](https://github
 # 1. Define the limits of your BESS
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    max_power_kw = st.number_input("BESS Power (kW)", 100, 10000, value=1000, step=100)
-    allowed_cycles = st.number_input("Allowed Cycles", 0.0, 1000.0, value=1.5)
+    max_power_kw = st.number_input("BESS Power (kW)", min_value=1, value=1000, step=100)
+    allowed_cycles = st.number_input("Allowed Cycles", min_value=0.0, value=1.5)
 with col2:
-    max_battery_capacity_kwh = st.number_input("BESS Capacity (kWh)", 100, 40000, value=2000, step=100)
+    max_battery_capacity_kwh = st.number_input("BESS Capacity (kWh)", min_value=1, value=2000, step=100)
 with col3:
     charge_efficiency = st.number_input("Charge Efficiency (%)", 0, 100, value=93)
     charge_efficiency = charge_efficiency / 100
@@ -107,7 +108,7 @@ try:
     }, axis=1)
     PriceScheduleDataFrame.validate(imbalance_price_schedule)
     flag_no_imbalance_data = False
-except entsoe.NoMatchingDataError:
+except (entsoe.NoMatchingDataError, ConnectionError):
     imbalance_price_schedule = pd.DataFrame()
     flag_no_imbalance_data = True
 
