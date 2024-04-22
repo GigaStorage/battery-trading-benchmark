@@ -7,7 +7,7 @@ import streamlit as st
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
 
-from menu import GIGA_HOME_PAGE, REPOSITORY_HOME_PAGE, menu
+from menu import GIGA_HOME_PAGE, REPOSITORY_HOME_PAGE, menu, ENTSOE_GITHUB_HOME_PAGE
 from model import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
     add_capacity_and_cycles_to_solver
 from visualizer import plot_power_schedule_capacity_and_prices
@@ -36,12 +36,17 @@ st.set_page_config(
 menu()
 st.write(f"""
 # Battery Trading Benchmark
-This is an open source tool to determine the optimal value a Energy Storage System (ESS)
- can earn on a specific electricity market.
+The Battery Trading Benchmark is an an open source tool developed to benchmark the value of a
+ Energy Storage System (ESS) on the Dutch electricity markets.
 It aims to be the market standard in evaluating an ESS system on different energy markets.
+
+Feel free to read additional documentation on the methodology of this benchmark under the
+ [description](/description) section.
+This version calculates the **mathematical optimum** an ESS can earn on a **single** market.
+
 This tool is maintained by [GIGA Storage]({GIGA_HOME_PAGE}), but we invite every one to collaborate with us in
  our [open-source community]({REPOSITORY_HOME_PAGE}) under the Apache License 2.0.
-Market data is retrieved from the [ENTSO-E Transparency Platform](https://github.com/EnergieID/entsoe-py).
+Market data is retrieved from the [ENTSO-E Transparency Platform]({ENTSOE_GITHUB_HOME_PAGE}).
 
 ## Define your BESS
 """)
@@ -260,16 +265,22 @@ if not flag_no_imbalance_data:
 else:
     imbalance_revenue = "No Imbalance Market Data"
 
-st.write(f"""
-## Battery Trading Benchmark {date_in_title} - {max_power_kw:,.0f} kW|{max_battery_capacity_kwh:,.0f}kWh
-The Battery Trading Benchmark calculates the mathematical optimum of a
- {max_power_kw:,.0f} kW|{max_battery_capacity_kwh:,.0f}kWh system dispatched on an energy market.
+power_text = f"{max_power_kw / 1000:,.1f} MW" if max_power_kw >= 1000 else f"{max_power_kw:,.0f} kW"
+if max_battery_capacity_kwh >= 1000:
+    capacity_text = f"{max_battery_capacity_kwh / 1000:,.1f} MWh"
+else:
+    capacity_text = f"{max_battery_capacity_kwh:,.0f} kWh"
 
-| Energy Market | Revenue 	|
-|---	        |---	|
+st.write(f"""
+## Battery Trading Benchmark {date_in_title}
+The Battery Trading Benchmark calculates the **mathematical optimum** of a
+ {power_text}|{capacity_text} system dispatched on a single energy market.
+
+| Energy Market | Revenue                	|
+|---	        |---	                    |
 | Dayahead 	    | {dayahead_revenue:,.2f} 	|
-| Imbalance     | {imbalance_revenue} 	|
-| ... 	        |  	|
+| Imbalance     | {imbalance_revenue} 	    |
+| ... 	        |  	                        |
 """)
 
 st.write(f"""
