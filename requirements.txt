@@ -5,3 +5,4 @@ ortools~=9.9.3963
 pandas~=2.2.1
 pandera~=0.18.3
 streamlit~=1.33.0
+requests~=2.31.0

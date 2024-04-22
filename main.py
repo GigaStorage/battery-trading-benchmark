@@ -2,6 +2,7 @@ import datetime as dt
 import os
 
 import pandas as pd
+from requests.exceptions import ConnectionError
 import streamlit as st
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
@@ -107,7 +108,7 @@ try:
     }, axis=1)
     PriceScheduleDataFrame.validate(imbalance_price_schedule)
     flag_no_imbalance_data = False
-except entsoe.NoMatchingDataError:
+except (entsoe.NoMatchingDataError, ConnectionError):
     imbalance_price_schedule = pd.DataFrame()
     flag_no_imbalance_data = True
 
