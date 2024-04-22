@@ -19,8 +19,8 @@ This tool is maintained by [GIGA Storage]({GIGA_HOME_PAGE}), but we invite every
 
 ## Current Methodology
 To steer an ESS optimally one should make many considerations.
-According to the amount of renewable energy generation in your portfolio, one can consider the possibility
- of using the ESS to hedge certain positions against volatility between the electricity markets.
+According to the amount of renewable energy generation in your portfolio, one can consider using the ESS
+ to hedge certain market positions or renewable energy forecasts.
 Considering certain contracts or agreements one can have with off-takers or power producers, an ESS can again help
  hedge these positions in an unfavourable electricity market.
 Utilizing wholesale markets, an ESS can earn revenue doing price arbitrage.
@@ -32,11 +32,11 @@ All of these considerations are constantly shifting and changing, influenced by 
 To scope the Battery Trading Benchmark, the current version focuses on the earnings a ESS can make 
  in a vacuum, on a single electricity market.
 To further scope the benchmark, forecast errors are left out of the equation by assuming that the prices of the market
- the ESS is active on, are perfect knowledge.
+ the ESS is active on are perfect foresight.
 Finally the limitations of the BESS are defined, per commonly known considerations, such as state of charge,
  round-trip efficiency and cycles.
-By scoping the possibilities of the ESS to this single energy market, with perfect knowledge and the only limitations
- a predefined set of schematics defining this ESS, **a mathematical optimum** can be calculated.
+By scoping the possibilities of the ESS to this single energy market, with perfect foresight
+ **a mathematical optimum** can be calculated.
 
 ## Current Implemented Markets
 
