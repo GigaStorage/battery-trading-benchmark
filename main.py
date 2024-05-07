@@ -37,7 +37,7 @@ menu()
 st.write(f"""
 # Battery Trading Benchmark
 The Battery Trading Benchmark is an an open source tool developed to benchmark the value of a
- Energy Storage System (ESS) on the Dutch electricity markets.
+ Energy Storage System (ESS) on the electricity markets.
 It aims to be the market standard in evaluating an ESS system on different energy markets.
 
 Feel free to read additional documentation on the methodology of this benchmark under the
@@ -82,7 +82,18 @@ with col4:
 min_battery_capacity_kwh = 0
 
 # 2. Define the Entsoe Area
-entsoe_area = entsoe.Area['NL']
+st.write("## Choose your country")
+entsoe_area_to_label = {
+    "NL": "The Netherlands 🇳🇱",
+    "BE": "Belgium 🇧🇪",
+    "PL": "Poland 🇵🇱",
+    # "DE": "Germany 🇩🇪",  # No matching data
+    # "IT": "Italy 🇮🇹",  # No matching data
+}
+
+chosen_entsoe_area = st.selectbox("Country", entsoe_area_to_label.keys(), format_func=lambda x: entsoe_area_to_label[x])
+
+entsoe_area = entsoe.Area[chosen_entsoe_area]
 
 # 3. Define the pandas Timestamps the prices will be taken of
 st.write(f"## Choose your date")
@@ -106,6 +117,8 @@ PriceScheduleDataFrame.validate(dayahead_price_schedule)
 dayahead_length_of_timestep_hour = 1
 
 try:
+    if entsoe_area.name != '10YNL----------L':
+        raise entsoe.NoMatchingDataError("Only the Dutch Imbalance Market has been implemented.")
     entsoe_imbalance_prices = client.query_imbalance_prices(entsoe_area.name, start=start, end=end)
     imbalance_price_schedule = entsoe_imbalance_prices.rename({
         'Short': 'charge_price',
