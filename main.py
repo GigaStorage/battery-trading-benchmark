@@ -87,7 +87,7 @@ entsoe_area_to_label = {
     "NL": "The Netherlands 🇳🇱",
     "BE": "Belgium 🇧🇪",
     "PL": "Poland 🇵🇱",
-    # "DE": "Germany 🇩🇪",  # No matching data
+    "DE_LU": "Germany 🇩🇪",
     # "IT": "Italy 🇮🇹",  # No matching data
 }
 
