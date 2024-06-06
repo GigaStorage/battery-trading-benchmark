@@ -125,7 +125,7 @@ except (entsoe.NoMatchingDataError, ConnectionError):
 round_trip_efficiency = charge_efficiency * discharge_efficiency * 100
 country_name = entsoe_area.meaning.split(',')[0]
 if len(dayahead_price_schedule) > 25:
-    date_in_title = f"{start.strftime('%d-%m-%Y')} - {end.strftime('%d-%m-%Y')}"
+    date_in_title = f"{start.strftime('%d-%m-%Y')} - {user_end_date_input.strftime('%d-%m-%Y')}"
 else:
     date_in_title = start.strftime('%d-%m-%Y')
 
