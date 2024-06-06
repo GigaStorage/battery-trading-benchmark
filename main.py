@@ -108,6 +108,8 @@ PriceScheduleDataFrame.validate(dayahead_price_schedule)
 dayahead_length_of_timestep_hour = 1
 
 try:
+    imbalance_end_datetime = end_of_day_on_dayahead.replace(minute=45)
+    imbalance_end_timestamp = pd.Timestamp(imbalance_end_datetime.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)
     entsoe_imbalance_prices = client.query_imbalance_prices(entsoe_area.name, start=start, end=end)
     imbalance_price_schedule = entsoe_imbalance_prices.rename({
         'Short': 'charge_price',
