@@ -124,6 +124,11 @@ if len(dayahead_price_schedule) > 25:
     date_in_title = f"{start.strftime('%d-%m-%Y')} - {end.strftime('%d-%m-%Y')}"
 else:
     date_in_title = start.strftime('%d-%m-%Y')
+power_text = f"{max_power_kw / 1000:,.1f} MW" if max_power_kw >= 1000 else f"{max_power_kw:,.0f} kW"
+if max_battery_capacity_kwh >= 1000:
+    capacity_text = f"{max_battery_capacity_kwh / 1000:,.1f} MWh"
+else:
+    capacity_text = f"{max_battery_capacity_kwh:,.0f} kWh"
 
 # ---------- ADDITIONAL VARIABLES USED IN PLOTS ----------
 dayahead_x_axis = dayahead_price_schedule.index.tolist()
@@ -181,7 +186,7 @@ if status == pywraplp.Solver.OPTIMAL:
     average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
 
     title = f"Battery Trading Benchmark - Dayahead {date_in_title} {country_name}\n" \
-            f"{max_power_kw:,.0f} kW| {max_battery_capacity_kwh:,.0f} kWh, {optimal_cycles[-1]:.2f} Cycles\n" \
+            f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
             f"Revenue: €{dayahead_revenue:,.2f}\n" \
             f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
     dayahead_figure = plot_power_schedule_capacity_and_prices(
@@ -249,7 +254,7 @@ if not flag_no_imbalance_data:
         average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
 
         title = f"Battery Trading Benchmark - Imbalance {date_in_title} {country_name}\n" \
-                f"{max_power_kw:,.0f} kW| {max_battery_capacity_kwh:,.0f} kWh, {optimal_cycles[-1]:.2f} Cycles\n" \
+                f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
                 f"Revenue: €{imbalance_revenue}\n" \
                 f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
         imbalance_figure = plot_power_schedule_capacity_and_prices(
@@ -264,12 +269,6 @@ if not flag_no_imbalance_data:
         print('The solver could not find an optimal solution.')
 else:
     imbalance_revenue = "No Imbalance Market Data"
-
-power_text = f"{max_power_kw / 1000:,.1f} MW" if max_power_kw >= 1000 else f"{max_power_kw:,.0f} kW"
-if max_battery_capacity_kwh >= 1000:
-    capacity_text = f"{max_battery_capacity_kwh / 1000:,.1f} MWh"
-else:
-    capacity_text = f"{max_battery_capacity_kwh:,.0f} kWh"
 
 st.write(f"""
 ## Battery Trading Benchmark {date_in_title}
