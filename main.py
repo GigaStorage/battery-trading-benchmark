@@ -87,9 +87,11 @@ entsoe_area = entsoe.Area['NL']
 # 3. Define the pandas Timestamps the prices will be taken of
 st.write(f"## Choose your date")
 default_date = dt.date.today() - dt.timedelta(days=5)
-day_on_dayahead = st.date_input("Date", value=default_date)
-start = pd.Timestamp(day_on_dayahead.strftime("%Y%m%d"), tz=entsoe_area.tz)
-end_of_day_on_dayahead = dt.datetime.combine(day_on_dayahead, dt.time(23, 0))
+user_start_date_input = st.date_input("Date", value=default_date)
+start = pd.Timestamp(user_start_date_input.strftime("%Y%m%d"), tz=entsoe_area.tz)
+
+user_end_date_input = st.date_input("End date", value=default_date + dt.timedelta(days=1))
+end_of_day_on_dayahead = dt.datetime.combine(user_end_date_input - dt.timedelta(days=1), dt.time(23, 0))
 end = pd.Timestamp(end_of_day_on_dayahead.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)  # end is inclusive
 
 # ---------- LOAD MARKET DATA ----------
