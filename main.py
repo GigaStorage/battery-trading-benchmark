@@ -12,7 +12,7 @@ from model import PriceScheduleDataFrame, add_power_schedules_to_solver, add_max
     add_capacity_and_cycles_to_solver
 from visualizer import plot_power_schedule_capacity_and_prices
 
-# Copyright 2023 GIGA Storage B.V.
+# Copyright 2024 GIGA Storage B.V.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
