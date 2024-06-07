@@ -87,9 +87,11 @@ entsoe_area = entsoe.Area['NL']
 # 3. Define the pandas Timestamps the prices will be taken of
 st.write(f"## Choose your date")
 default_date = dt.date.today() - dt.timedelta(days=5)
-day_on_dayahead = st.date_input("Date", value=default_date)
-start = pd.Timestamp(day_on_dayahead.strftime("%Y%m%d"), tz=entsoe_area.tz)
-end_of_day_on_dayahead = dt.datetime.combine(day_on_dayahead, dt.time(23, 0))
+user_start_date_input = st.date_input("Date", value=default_date)
+start = pd.Timestamp(user_start_date_input.strftime("%Y%m%d"), tz=entsoe_area.tz)
+
+user_end_date_input = st.date_input("End date (non-inclusive)", value=default_date + dt.timedelta(days=1))
+end_of_day_on_dayahead = dt.datetime.combine(user_end_date_input - dt.timedelta(days=1), dt.time(23, 0))
 end = pd.Timestamp(end_of_day_on_dayahead.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)  # end is inclusive
 
 # ---------- LOAD MARKET DATA ----------
@@ -106,6 +108,8 @@ PriceScheduleDataFrame.validate(dayahead_price_schedule)
 dayahead_length_of_timestep_hour = 1
 
 try:
+    imbalance_end_datetime = end_of_day_on_dayahead.replace(minute=45)
+    imbalance_end_timestamp = pd.Timestamp(imbalance_end_datetime.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)
     entsoe_imbalance_prices = client.query_imbalance_prices(entsoe_area.name, start=start, end=end)
     imbalance_price_schedule = entsoe_imbalance_prices.rename({
         'Short': 'charge_price',
@@ -121,7 +125,7 @@ except (entsoe.NoMatchingDataError, ConnectionError):
 round_trip_efficiency = charge_efficiency * discharge_efficiency * 100
 country_name = entsoe_area.meaning.split(',')[0]
 if len(dayahead_price_schedule) > 25:
-    date_in_title = f"{start.strftime('%d-%m-%Y')} - {end.strftime('%d-%m-%Y')}"
+    date_in_title = f"{start.strftime('%d-%m-%Y')} - {user_end_date_input.strftime('%d-%m-%Y')}"
 else:
     date_in_title = start.strftime('%d-%m-%Y')
 
