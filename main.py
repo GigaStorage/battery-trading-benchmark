@@ -90,7 +90,7 @@ default_date = dt.date.today() - dt.timedelta(days=5)
 user_start_date_input = st.date_input("Date", value=default_date)
 start = pd.Timestamp(user_start_date_input.strftime("%Y%m%d"), tz=entsoe_area.tz)
 
-user_end_date_input = st.date_input("End date", value=default_date + dt.timedelta(days=1))
+user_end_date_input = st.date_input("End date (non-inclusive)", value=default_date + dt.timedelta(days=1))
 end_of_day_on_dayahead = dt.datetime.combine(user_end_date_input - dt.timedelta(days=1), dt.time(23, 0))
 end = pd.Timestamp(end_of_day_on_dayahead.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)  # end is inclusive
 
