@@ -282,7 +282,7 @@ if not flag_no_imbalance_data:
     else:
         print('The solver could not find an optimal solution.')
 else:
-    imbalance_revenue = "No Imbalance Market Data"
+    imbalance_revenue = "No imbalance market data"
 
 if flag_no_dayahead_data and flag_no_imbalance_data:
     st.exception(RuntimeError("Error while retrieving market data, please verify the offered date(s)."))
