@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
+from requests import HTTPError
 
 from menu import GIGA_HOME_PAGE, REPOSITORY_HOME_PAGE, menu
 from model import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
@@ -136,7 +137,11 @@ end = pd.Timestamp(end_of_day_on_dayahead.strftime('%Y%m%d%H%M'), tz=entsoe_area
 if ENTSOE_API_KEY is None:
     raise RuntimeError("The required environment variable ENTSOE_API_KEY is not set.")
 client = EntsoePandasClient(api_key=ENTSOE_API_KEY)
-entsoe_dayahead_prices = client.query_day_ahead_prices(entsoe_area.name, start=start, end=end)
+try:
+    entsoe_dayahead_prices = client.query_day_ahead_prices(entsoe_area.name, start=start, end=end)
+except (entsoe.NoMatchingDataError, ConnectionError, HTTPError):
+    st.exception(RuntimeError("Error while retrieving market data, please verify the offered date."))
+    st.stop()
 # Convert the EntsoePandasClient result into a PriceScheduleDataFrame
 price_schedule_df = pd.DataFrame(entsoe_dayahead_prices.rename('charge_price'))
 price_schedule_df['discharge_price'] = entsoe_dayahead_prices
@@ -624,4 +629,6 @@ Feel free to dive into our [open-source community]({REPOSITORY_HOME_PAGE}).
 
 * 17-04-2024: [PR #4 [ADD] Streamlit Blog Post introducing
  the Battery Trading Benchmark](https://github.com/GigaStorage/battery-trading-benchmark/pull/4)
+* 09-07-2024: [PR #16 [FIX] try except statement for reading
+ entsoe-py](https://github.com/GigaStorage/battery-trading-benchmark/pull/16)
 """)
