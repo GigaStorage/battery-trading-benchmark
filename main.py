@@ -284,6 +284,10 @@ if not flag_no_imbalance_data:
 else:
     imbalance_revenue = "No Imbalance Market Data"
 
+if flag_no_dayahead_data and flag_no_imbalance_data:
+    st.exception(RuntimeError("Error while retrieving market data, please verify the offered date(s)."))
+    st.stop()
+
 st.write(f"""
 ## Battery Trading Benchmark {date_in_title}
 The Battery Trading Benchmark calculates the **mathematical optimum** of a
