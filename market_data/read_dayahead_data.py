@@ -1,18 +1,27 @@
 import datetime as dt
 
 import pandas as pd
+import pytz
 from entsoe import EntsoePandasClient, Area
 
 from model import PriceScheduleDataFrame
 
+DAYAHEAD_PRICE_SCHEDULE_FILE = "market_data/data/dayahead_data.pkl"
+
+
+def update_hot_load(dayahead_price_schedule: PriceScheduleDataFrame):
+    # TODO read the existing hot load and add it, for now just overwrite
+    dayahead_price_schedule.to_pickle("market_data/data/dayahead_data.pkl")
+
 
 def cold_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime, client: EntsoePandasClient,
-                            entsoe_area: Area = Area['NL']):
+                            store_in_hot_load: bool, entsoe_area: Area = Area['NL']) -> PriceScheduleDataFrame:
     """
     Load the dayahead_data from entsoe_area from start_time until (and including) end_time using the entsoe.client
     :param start_time: datetime specifying the start_time
     :param end_time: datetime specifying the end_time (inclusive)
     :param client: EntsoePandasClient, the query_day_ahead_prices method is used
+    :param store_in_hot_load: bool, specifying if the created DataFrame should be stored in a hot_load
     :param entsoe_area: entsoe.Area ENUM, containing a (country)code and a tz
     :return: A PriceScheduleDataFrame from start_time until (and including) end_time
 
@@ -38,4 +47,8 @@ def cold_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime, clie
     dayahead_price_schedule['discharge_price'] = entsoe_dayahead_prices
 
     PriceScheduleDataFrame.validate(dayahead_price_schedule)
+
+    if store_in_hot_load:
+        update_hot_load(dayahead_price_schedule)
+
     return dayahead_price_schedule
