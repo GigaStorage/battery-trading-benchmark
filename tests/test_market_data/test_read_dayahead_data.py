@@ -1,8 +1,9 @@
 import datetime as dt
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 import entsoe
+import pandas
 import pandas as pd
 import pytz
 
@@ -118,11 +119,37 @@ class TestReadDayaheadData(unittest.TestCase):
         PriceScheduleDataFrame.validate(res)
         mock_update_hot_load.assert_called_with(res)
 
-    def test_update_hot_load(self):
+    @patch('pandas.read_pickle')
+    def test_very_first_update_hot_load(self, mock_read_pickle):
+        mock_read_pickle.side_effect = FileNotFoundError()
         mock_to_pickle = Mock()
         self.example_df.to_pickle = mock_to_pickle()
         update_hot_load(self.example_df, file_name="test_market_data/dayahead_data.pkl")
         self.example_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
+
+    def capture_dataframe(self, df):
+        self.captured_dataframe = df
+        # Return a MagicMock to avoid actual writing to file in testing
+        return MagicMock()
+
+    @patch('pandas.read_pickle')
+    def test_update_hot_load(self, mock_read_pickle):
+        # The existing_df is the example_df
+        mocked_res_df = Mock()
+        self.example_df.combine_first = MagicMock(return_value=mocked_res_df)
+        mock_read_pickle.return_value = self.example_df
+
+        # This overwrite_df contains new information before and after the existing_df
+        data = {
+            'charge_price': [4.57, 13.54, 6.37, 4.00, 2.67, 3.87],
+            'discharge_price': [4.57, 13.54, 6.37, 4.00, 2.67, 3.87]
+        }
+        index = pd.date_range(start="2024-07-04 23:00:00", periods=6, freq="h", tz="Europe/Berlin")
+        overwrite_df = pd.DataFrame(data, index=index)
+
+        update_hot_load(overwrite_df, file_name="test_market_data/dayahead_data.pkl")
+
+        mocked_res_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
 
 
 if __name__ == '__main__':
