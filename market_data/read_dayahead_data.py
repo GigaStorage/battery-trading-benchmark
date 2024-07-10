@@ -18,6 +18,15 @@ def cold_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime, clie
 
     :raises entsoe.NoMatchingDataError, ConnectionError, HTTPError, if there is an error retrieving data
     """
+    # Verify the timezone of the passed datetimes
+    local_tz = pytz.timezone(entsoe_area.tz)
+    if start_time.tzinfo is None:
+        start_time = local_tz.localize(start_time)
+    if end_time.tzinfo is None:
+        end_time = local_tz.localize(end_time)
+    start_time = start_time.astimezone(local_tz)
+    end_time = end_time.astimezone(local_tz)
+
     # The EntsoePandasClient takes pd.Timestamps
     start = pd.Timestamp(start_time.strftime("%Y%m%d%H%M"), tz=entsoe_area.tz)
     end = pd.Timestamp(end_time.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)  # end is inclusive
