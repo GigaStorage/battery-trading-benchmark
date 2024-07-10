@@ -1,5 +1,4 @@
 import datetime as dt
-import json
 import unittest
 from unittest.mock import Mock, patch
 
@@ -7,15 +6,14 @@ import entsoe
 import pandas as pd
 import pytz
 
-import market_data.read_dayahead_data
-from market_data.read_dayahead_data import cold_load_dayahead_data
+from market_data.read_dayahead_data import cold_load_dayahead_data, update_hot_load
 from model import PriceScheduleDataFrame
 
 
 class TestReadDayaheadData(unittest.TestCase):
 
     def setUp(self) -> None:
-        # Define the data and datetime index
+        # Data from ENTSOE comes as a series
         data = [10.5, 15.2, 7.8, 22.3]
         datetime_index = pd.to_datetime([
             "2024-07-05 00:00:00+02:00",
@@ -25,6 +23,16 @@ class TestReadDayaheadData(unittest.TestCase):
         ])
         # Create the Series
         self.example_series = pd.Series(data, index=datetime_index)
+
+        # We convert it to a PriceScheduleDataFrame
+        data = {
+            'charge_price': [13.54, 6.37, 4.00, 2.67],
+            'discharge_price': [13.54, 6.37, 4.00, 2.67]
+        }
+        # Index (timestamps)
+        index = pd.date_range(start="2024-07-05 00:00:00", periods=4, freq="h", tz="Europe/Berlin")
+        # Create DataFrame
+        self.example_df = pd.DataFrame(data, index=index)
 
     def test_cold_load_dayahead_data_tz_unaware(self):
         start_time = dt.datetime(2024, 7, 10)
@@ -109,6 +117,12 @@ class TestReadDayaheadData(unittest.TestCase):
         )
         PriceScheduleDataFrame.validate(res)
         mock_update_hot_load.assert_called_with(res)
+
+    def test_update_hot_load(self):
+        mock_to_pickle = Mock()
+        self.example_df.to_pickle = mock_to_pickle()
+        update_hot_load(self.example_df, file_name="test_market_data/dayahead_data.pkl")
+        self.example_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
 
 
 if __name__ == '__main__':
