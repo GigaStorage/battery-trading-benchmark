@@ -1,4 +1,5 @@
 import datetime as dt
+from typing import Optional
 
 import pandas as pd
 import pytz
@@ -9,9 +10,11 @@ from model import PriceScheduleDataFrame
 DAYAHEAD_PRICE_SCHEDULE_FILE = "market_data/data/dayahead_data.pkl"
 
 
-def update_hot_load(dayahead_price_schedule: PriceScheduleDataFrame):
+def update_hot_load(dayahead_price_schedule: PriceScheduleDataFrame, file_name: Optional[str] = None):
     # TODO read the existing hot load and add it, for now just overwrite
-    dayahead_price_schedule.to_pickle("market_data/data/dayahead_data.pkl")
+    if file_name is None:
+        file_name = DAYAHEAD_PRICE_SCHEDULE_FILE
+    dayahead_price_schedule.to_pickle(file_name)
 
 
 def cold_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime, client: EntsoePandasClient,
