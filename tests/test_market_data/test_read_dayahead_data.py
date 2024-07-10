@@ -7,7 +7,7 @@ import pandas
 import pandas as pd
 import pytz
 
-from market_data.read_dayahead_data import cold_load_dayahead_data, update_hot_load
+from market_data.read_dayahead_data import cold_load_dayahead_data, update_hot_load, hot_load_dayahead_data
 from model import PriceScheduleDataFrame
 
 
@@ -127,11 +127,6 @@ class TestReadDayaheadData(unittest.TestCase):
         update_hot_load(self.example_df, file_name="test_market_data/dayahead_data.pkl")
         self.example_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
 
-    def capture_dataframe(self, df):
-        self.captured_dataframe = df
-        # Return a MagicMock to avoid actual writing to file in testing
-        return MagicMock()
-
     @patch('pandas.read_pickle')
     def test_update_hot_load(self, mock_read_pickle):
         # The existing_df is the example_df
@@ -150,6 +145,22 @@ class TestReadDayaheadData(unittest.TestCase):
         update_hot_load(overwrite_df, file_name="test_market_data/dayahead_data.pkl")
 
         mocked_res_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
+
+    def test_update_hot_load(self):
+        update_hot_load(self.example_df, file_name="test_market_data/dayahead_data.pkl")
+
+        start_time = dt.datetime(2024, 7, 5)
+        end_time = dt.datetime(2024, 7, 5, 2)
+        mock_client = Mock()
+        mock_client.query_day_ahead_prices.return_value = self.example_series
+        res = hot_load_dayahead_data(
+            start_time=start_time,
+            end_time=end_time,
+            client=mock_client,
+            allow_cold_load=False,
+            file_name="test_market_data/dayahead_data.pkl"
+        )
+        print(res)
 
 
 if __name__ == '__main__':
