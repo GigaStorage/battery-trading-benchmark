@@ -146,21 +146,21 @@ class TestReadDayaheadData(unittest.TestCase):
 
         mocked_res_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
 
-    def test_update_hot_load(self):
-        update_hot_load(self.example_df, file_name="test_market_data/dayahead_data.pkl")
+    @patch('pandas.read_pickle')
+    def test_update_hot_load_no_client(self, mock_read_pickle):
+        mock_read_pickle.side_effect = FileNotFoundError()
 
         start_time = dt.datetime(2024, 7, 5)
         end_time = dt.datetime(2024, 7, 5, 2)
-        mock_client = Mock()
-        mock_client.query_day_ahead_prices.return_value = self.example_series
-        res = hot_load_dayahead_data(
+        self.assertRaises(
+            ConnectionError,
+            hot_load_dayahead_data,
             start_time=start_time,
             end_time=end_time,
-            client=mock_client,
-            allow_cold_load=False,
+            client=None,
+            allow_cold_load=True,
             file_name="test_market_data/dayahead_data.pkl"
         )
-        print(res)
 
 
 if __name__ == '__main__':

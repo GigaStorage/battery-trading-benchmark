@@ -50,6 +50,8 @@ def cold_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime, clie
     start = pd.Timestamp(start_time.strftime("%Y%m%d%H%M"), tz=entsoe_area.tz)
     end = pd.Timestamp(end_time.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)  # end is inclusive
 
+    if client is None:
+        raise ConnectionError("No entsoe.EntsoePandasClient was passed so no connection could be made.")
     entsoe_dayahead_prices = client.query_day_ahead_prices(country_code=entsoe_area.code, start=start, end=end)
 
     # Convert the EntsoePandasClient result into a PriceScheduleDataFrame
@@ -87,7 +89,6 @@ def hot_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime,
         total_schedule = pd.read_pickle(file_name)
     except FileNotFoundError:
         if allow_cold_load:
-            # TODO raises something if client is None
             return cold_load_dayahead_data(
                 start_time=start_time,
                 end_time=end_time,
@@ -107,7 +108,6 @@ def hot_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime,
 
     # Unhappy flow, no (or insufficient) data was found, check if we can cold_load
     if allow_cold_load:
-        # TODO raises something if client is None
         return cold_load_dayahead_data(
             start_time=start_time,
             end_time=end_time,
