@@ -97,11 +97,12 @@ def hot_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime,
                 entsoe_area=entsoe_area
             )
         else:
-            raise ValueError("No data was found for the requested timestamps.")
+            raise ValueError("You requested too much data that is not cached yet. Please request smaller intervals, "
+                             "each call will be cached individually, then try again later.")
 
     dayahead_price_schedule = total_schedule[start_time:end_time]
 
-    expected_length_of_data = int((start_time - end_time).total_seconds() / 60 / 60)
+    expected_length_of_data = int((end_time - start_time).total_seconds() / 60 / 60) + 1
     # Happy flow, the data is found, return it
     if len(dayahead_price_schedule) == expected_length_of_data:
         return dayahead_price_schedule
@@ -116,7 +117,8 @@ def hot_load_dayahead_data(start_time: dt.datetime, end_time: dt.datetime,
             entsoe_area=entsoe_area
         )
     # If no cold_load is allowed, we raise a ValueError
-    raise ValueError("No data was found for the requested timestamps.")
+    raise ValueError("You requested too much data that is not cached yet. Please request smaller intervals, "
+                     "each call will be cached individually, then try again later.")
 
 
 def verify_start_and_end_time(start_time: dt.datetime, end_time: dt.datetime,
