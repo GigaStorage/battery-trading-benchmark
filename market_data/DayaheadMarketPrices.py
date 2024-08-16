@@ -14,16 +14,17 @@ class DayaheadMarketPrices(AbstractQueryMarketPrices):
     @classmethod
     def cold_load_data(cls, start_time: dt.datetime, end_time: dt.datetime, client: EntsoePandasClient,
                        store_in_hot_load: bool, entsoe_area: Area = Area['NL']) -> PriceScheduleDataFrame:
-        # Verify the timezone of the passed datetimes
-        start_time, end_time = cls.verify_start_and_end_time(start_time, end_time, entsoe_area)
-
-        # The EntsoePandasClient takes pd.Timestamps
-        start = pd.Timestamp(start_time.strftime("%Y%m%d%H%M"), tz=entsoe_area.tz)
-        end = pd.Timestamp(end_time.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)  # end is inclusive
-
         if client is None:
             raise ConnectionError("No entsoe.EntsoePandasClient was passed so no connection could be made.")
-        entsoe_dayahead_prices = client.query_day_ahead_prices(country_code=entsoe_area.code, start=start, end=end)
+
+        # Verify the timezone of the passed datetimes
+        start_pd, end_pd = cls.convert_to_timezoned_pandas_object(start_time, end_time, entsoe_area)
+
+        entsoe_dayahead_prices = client.query_day_ahead_prices(
+            country_code=entsoe_area.code,
+            start=start_pd,
+            end=end_pd
+        )
 
         # Convert the EntsoePandasClient result into a PriceScheduleDataFrame
         dayahead_price_schedule = pd.DataFrame(entsoe_dayahead_prices.rename('charge_price'))

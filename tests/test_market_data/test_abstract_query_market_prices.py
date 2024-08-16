@@ -1,8 +1,13 @@
+import datetime as dt
+
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
+import pytz
+from entsoe import entsoe
 
+import market_data.AbstractQueryMarketPrices
 from market_data.AbstractQueryMarketPrices import AbstractQueryMarketPrices
 
 
@@ -29,6 +34,16 @@ class TestAbstractQueryMarketPrices(unittest.TestCase):
         index = pd.date_range(start="2024-07-05 00:00:00", periods=4, freq="h", tz="Europe/Berlin")
         # Create DataFrame
         self.example_df = pd.DataFrame(data, index=index)
+
+        # Set up timezone-aware and timezone-unaware start and end times
+        self.tz_aware_start = dt.datetime(2023, 8, 16, 12, 0, tzinfo=pytz.timezone("Europe/Amsterdam"))
+        self.tz_aware_end = dt.datetime(2023, 8, 16, 14, 0, tzinfo=pytz.timezone("Europe/Amsterdam"))
+        self.tz_unaware_start = dt.datetime(2023, 8, 16, 12, 0)
+        self.tz_unaware_end = dt.datetime(2023, 8, 16, 14, 0)
+
+        # Setup areas with matching and non-matching timezones
+        self.matching_area = entsoe.Area["NL"]
+        self.non_matching_area = entsoe.Area["GB_IFA"]
 
     @patch('pandas.read_pickle')
     def test_very_first_update_hot_load(self, mock_read_pickle):
@@ -57,6 +72,102 @@ class TestAbstractQueryMarketPrices(unittest.TestCase):
 
         mocked_res_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
 
+    def test_tz_aware_matching_area(self):
+        # tz_aware, tz_aware, matching_area.tz
+        start, end = AbstractQueryMarketPrices.verify_start_and_end_time(
+            self.tz_aware_start,
+            self.tz_aware_end,
+            self.matching_area
+        )
 
-if __name__ == '__main__':
+        expected_start = self.tz_aware_start.astimezone(pytz.timezone('Europe/Amsterdam'))
+        expected_end = self.tz_aware_end.astimezone(pytz.timezone('Europe/Amsterdam'))
+
+        self.assertEqual(expected_start, start)
+        self.assertEqual(expected_end, end)
+
+    def test_tz_aware_non_matching_area(self):
+        # tz_aware, tz_aware, non_matching_area.tz
+        start, end = AbstractQueryMarketPrices.verify_start_and_end_time(
+            self.tz_aware_start,
+            self.tz_aware_end,
+            self.non_matching_area
+        )
+
+        expected_start = self.tz_aware_start.astimezone(pytz.timezone('Europe/London'))
+        expected_end = self.tz_aware_end.astimezone(pytz.timezone('Europe/London'))
+
+        self.assertEqual(start, expected_start)
+        self.assertEqual(end, expected_end)
+
+    def test_tz_unaware_non_matching_assume_naive_true(self):
+        # tz_unaware, tz_aware, non_matching_area.tz, True
+        start, end = AbstractQueryMarketPrices.verify_start_and_end_time(
+            self.tz_unaware_start,
+            self.tz_aware_end,
+            self.non_matching_area,
+            assume_naive_timezones=True
+        )
+
+        expected_start = pytz.timezone('Europe/London').localize(self.tz_unaware_start)
+        expected_end = self.tz_aware_end.astimezone(pytz.timezone('Europe/London'))
+
+        self.assertEqual(start, expected_start)
+        self.assertEqual(end, expected_end)
+
+    def test_tz_aware_tz_unaware_assume_naive_true(self):
+        # tz_aware, tz_unaware, non_matching_area.tz, True
+        start, end = AbstractQueryMarketPrices.verify_start_and_end_time(
+            self.tz_aware_start,
+            self.tz_unaware_end,
+            self.non_matching_area,
+            assume_naive_timezones=True
+        )
+
+        expected_start = self.tz_aware_start.astimezone(pytz.timezone('Europe/London'))
+        expected_end = pytz.timezone('Europe/London').localize(self.tz_unaware_end)
+
+        self.assertEqual(start, expected_start)
+        self.assertEqual(end, expected_end)
+
+    def test_tz_aware_tz_unaware_assume_naive_false(self):
+        # tz_aware, tz_unaware, non_matching_area.tz, False
+        with self.assertRaises(TypeError):
+            AbstractQueryMarketPrices.verify_start_and_end_time(
+                self.tz_aware_start,
+                self.tz_unaware_end,
+                self.non_matching_area,
+                assume_naive_timezones=False
+            )
+            AbstractQueryMarketPrices.verify_start_and_end_time(
+                self.tz_unaware_start,
+                self.tz_aware_end,
+                self.non_matching_area,
+                assume_naive_timezones=False
+            )
+
+    @patch('market_data.AbstractQueryMarketPrices.AbstractQueryMarketPrices.verify_start_and_end_time')
+    def test_convert_to_timezoned_pandas_object(self, mocked_verify_start_and_end_time):
+        expected_start_pd = pd.Timestamp(self.tz_aware_start.strftime("%Y%m%d%H%M"), tz=self.matching_area.tz)
+        expected_end_pd = pd.Timestamp(self.tz_aware_end.strftime('%Y%m%d%H%M'), tz=self.matching_area.tz)
+        mocked_verify_start_and_end_time.return_value = (self.tz_aware_start, self.tz_aware_end)
+
+        start_pd, end_pd = AbstractQueryMarketPrices.convert_to_timezoned_pandas_object(
+            start_time=self.tz_unaware_start,
+            end_time=self.tz_aware_end,
+            entsoe_area=self.matching_area,
+            assume_naive_timezones=False,
+        )
+
+        mocked_verify_start_and_end_time.assert_called_with(
+            start_time=self.tz_unaware_start,
+            end_time=self.tz_aware_end,
+            entsoe_area=self.matching_area,
+            assume_naive_timezones=False,
+        )
+        self.assertEqual(expected_start_pd, start_pd)
+        self.assertEqual(expected_end_pd, end_pd)
+
+
+if __name__ == "__main__":
     unittest.main()

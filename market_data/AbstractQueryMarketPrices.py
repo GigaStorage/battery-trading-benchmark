@@ -35,25 +35,62 @@ class AbstractQueryMarketPrices(ABC):
 
     @classmethod
     def verify_start_and_end_time(cls, start_time: dt.datetime, end_time: dt.datetime,
-                                  entsoe_area: entsoe.Area) -> tuple[dt.datetime, dt.datetime]:
+                                  entsoe_area: entsoe.Area,
+                                  assume_naive_timezones: bool = True) -> tuple[dt.datetime, dt.datetime]:
         """
         This method will verify and align the timezone of the start_time and end_time with the entsoe_area
+
         :param start_time: datetime specifying the start_time
         :param end_time: datetime specifying the end_time
         :param entsoe_area: entsoe.Area ENUM, containing a (country)code and a tz
+        :param assume_naive_timezones: boolean specifying if the method is allowed to assume_naive_timezones
+
         :return: timezone aware tuple (start_time, end_time)
+
+        :raises TypeError: If naive datetime objects are passed and assume_naive_timezones is False
         """
         area_tz = pytz.timezone(entsoe_area.tz)
 
         if start_time.tzinfo is None:
+            if not assume_naive_timezones:
+                raise TypeError("start_time must be timezone aware")
             start_time = area_tz.localize(start_time)
         start_time = start_time.astimezone(area_tz)
 
         if end_time.tzinfo is None:
+            if not assume_naive_timezones:
+                raise TypeError("end_time must be timezone aware")
             end_time = area_tz.localize(end_time)
         end_time = end_time.astimezone(area_tz)
 
         return start_time, end_time
+
+    @classmethod
+    def convert_to_timezoned_pandas_object(cls, start_time: dt.datetime, end_time: dt.datetime,
+                                           entsoe_area: entsoe.Area,
+                                           assume_naive_timezones: bool = True) -> tuple[pd.Timestamp, pd.Timestamp]:
+        """
+        This method will verify and align the timezone of the start_time and end_time with the entsoe_area, and then
+          convert the Python datetime objects to a timezoned pandas object for entsoe
+
+        :param start_time: datetime specifying the start_time
+        :param end_time: datetime specifying the end_time
+        :param entsoe_area: entsoe.Area ENUM, containing a (country)code and a tz
+        :param assume_naive_timezones: boolean specifying if the method is allowed to assume_naive_timezones
+
+        :return: timezone aware tuple (start_time, end_time)
+        """
+        start_time, end_time = cls.verify_start_and_end_time(
+            start_time=start_time,
+            end_time=end_time,
+            entsoe_area=entsoe_area,
+            assume_naive_timezones=assume_naive_timezones,
+        )
+
+        start_pd = pd.Timestamp(start_time.strftime("%Y%m%d%H%M"), tz=entsoe_area.tz)
+        end_pd = pd.Timestamp(end_time.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)
+
+        return start_pd, end_pd
 
     @classmethod
     @abc.abstractmethod
