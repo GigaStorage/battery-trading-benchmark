@@ -232,3 +232,6 @@ fabric.properties
 
 # Streamlit secrets file
 /.streamlit/secrets.toml
+
+# Hot Load storage folder
+market_data/data/
