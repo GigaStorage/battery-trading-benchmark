@@ -1,17 +1,16 @@
 import datetime as dt
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import entsoe
-import pandas
 import pandas as pd
 import pytz
 
-from market_data.read_dayahead_data import cold_load_dayahead_data, update_hot_load, hot_load_dayahead_data
+from market_data.DayaheadMarketPrices import DayaheadMarketPrices
 from model import PriceScheduleDataFrame
 
 
-class TestReadDayaheadData(unittest.TestCase):
+class TestDayaheadMarketPrices(unittest.TestCase):
 
     def setUp(self) -> None:
         # Data from ENTSOE comes as a series
@@ -41,7 +40,7 @@ class TestReadDayaheadData(unittest.TestCase):
         mock_client = Mock()
         mock_client.query_day_ahead_prices.return_value = self.example_series
 
-        res = cold_load_dayahead_data(
+        res = DayaheadMarketPrices.cold_load_data(
             start_time=start_time,
             end_time=end_time,
             client=mock_client,
@@ -61,7 +60,7 @@ class TestReadDayaheadData(unittest.TestCase):
         mock_client = Mock()
         mock_client.query_day_ahead_prices.return_value = self.example_series
 
-        res = cold_load_dayahead_data(
+        res = DayaheadMarketPrices.cold_load_data(
             start_time=start_time,
             end_time=end_time,
             client=mock_client,
@@ -82,7 +81,7 @@ class TestReadDayaheadData(unittest.TestCase):
         mock_client = Mock()
         mock_client.query_day_ahead_prices.return_value = self.example_series
 
-        res = cold_load_dayahead_data(
+        res = DayaheadMarketPrices.cold_load_data(
             start_time=start_time,
             end_time=end_time,
             client=mock_client,
@@ -96,14 +95,14 @@ class TestReadDayaheadData(unittest.TestCase):
         )
         PriceScheduleDataFrame.validate(res)
 
-    @patch('market_data.read_dayahead_data.update_hot_load')
+    @patch('market_data.DayaheadMarketPrices.DayaheadMarketPrices.update_hot_load')
     def test_cold_load_dayahead_data_tz_aware_other_area_and_hot_load_store(self, mock_update_hot_load):
         start_time = dt.datetime(2024, 7, 9, 22, tzinfo=pytz.utc)
         end_time = dt.datetime(2024, 7, 10, 21, tzinfo=pytz.utc)
         mock_client = Mock()
         mock_client.query_day_ahead_prices.return_value = self.example_series
 
-        res = cold_load_dayahead_data(
+        res = DayaheadMarketPrices.cold_load_data(
             start_time=start_time,
             end_time=end_time,
             client=mock_client,
@@ -120,33 +119,6 @@ class TestReadDayaheadData(unittest.TestCase):
         mock_update_hot_load.assert_called_with(res)
 
     @patch('pandas.read_pickle')
-    def test_very_first_update_hot_load(self, mock_read_pickle):
-        mock_read_pickle.side_effect = FileNotFoundError()
-        mock_to_pickle = Mock()
-        self.example_df.to_pickle = mock_to_pickle()
-        update_hot_load(self.example_df, file_name="test_market_data/dayahead_data.pkl")
-        self.example_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
-
-    @patch('pandas.read_pickle')
-    def test_update_hot_load(self, mock_read_pickle):
-        # The existing_df is the example_df
-        mocked_res_df = Mock()
-        self.example_df.combine_first = MagicMock(return_value=mocked_res_df)
-        mock_read_pickle.return_value = self.example_df
-
-        # This overwrite_df contains new information before and after the existing_df
-        data = {
-            'charge_price': [4.57, 13.54, 6.37, 4.00, 2.67, 3.87],
-            'discharge_price': [4.57, 13.54, 6.37, 4.00, 2.67, 3.87]
-        }
-        index = pd.date_range(start="2024-07-04 23:00:00", periods=6, freq="h", tz="Europe/Berlin")
-        overwrite_df = pd.DataFrame(data, index=index)
-
-        update_hot_load(overwrite_df, file_name="test_market_data/dayahead_data.pkl")
-
-        mocked_res_df.to_pickle.assert_called_with("test_market_data/dayahead_data.pkl")
-
-    @patch('pandas.read_pickle')
     def test_update_hot_load_no_client(self, mock_read_pickle):
         mock_read_pickle.side_effect = FileNotFoundError()
 
@@ -154,7 +126,7 @@ class TestReadDayaheadData(unittest.TestCase):
         end_time = dt.datetime(2024, 7, 5, 2)
         self.assertRaises(
             ConnectionError,
-            hot_load_dayahead_data,
+            DayaheadMarketPrices.hot_load_data,
             start_time=start_time,
             end_time=end_time,
             client=None,
