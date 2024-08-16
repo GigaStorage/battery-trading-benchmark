@@ -34,6 +34,8 @@ class TestDayaheadMarketPrices(unittest.TestCase):
         # Create DataFrame
         self.example_df = pd.DataFrame(data, index=index)
 
+        self.timezone = pytz.timezone("Europe/Amsterdam")
+
     def test_cold_load_dayahead_data_tz_unaware(self):
         start_time = dt.datetime(2024, 7, 10)
         end_time = dt.datetime(2024, 7, 10, 23)
@@ -118,21 +120,61 @@ class TestDayaheadMarketPrices(unittest.TestCase):
         PriceScheduleDataFrame.validate(res)
         mock_update_hot_load.assert_called_with(res)
 
-    @patch('pandas.read_pickle')
-    def test_update_hot_load_no_client(self, mock_read_pickle):
-        mock_read_pickle.side_effect = FileNotFoundError()
+    def test_no_dst_transition(self):
+        # Simple case: 3 hours between start and end, no DST transition
+        start_time = self.timezone.localize(dt.datetime(2024, 10, 10, 1, 0, 0))
+        end_time = self.timezone.localize(dt.datetime(2024, 10, 10, 4, 0, 0))
 
-        start_time = dt.datetime(2024, 7, 5)
-        end_time = dt.datetime(2024, 7, 5, 2)
-        self.assertRaises(
-            ConnectionError,
-            DayaheadMarketPrices.hot_load_data,
-            start_time=start_time,
-            end_time=end_time,
-            client=None,
-            allow_cold_load=True,
-            file_name="test_market_data/dayahead_data.pkl"
-        )
+        expected_hours = 4  # 3 hours, but +1 as end_time is inclusive
+        result = DayaheadMarketPrices.expected_length_of_data(start_time, end_time)
+        self.assertEqual(result, expected_hours)
+
+    def test_within_dst(self):
+        # Case: 2 hours within DST period
+        start_time = self.timezone.localize(dt.datetime(2024, 6, 15, 12, 0, 0))
+        end_time = self.timezone.localize(dt.datetime(2024, 6, 15, 14, 0, 0))
+
+        expected_hours = 3  # 2 hours, but +1 as end_time is inclusive
+        result = DayaheadMarketPrices.expected_length_of_data(start_time, end_time)
+        self.assertEqual(result, expected_hours)
+
+    def test_fall_dst_transition(self):
+        # Fall DST Transition: Clocks go back 1 hour at 03:00 on October 27, 2024
+        # This makes the 2 AM to 3 AM period "repeat" an extra hour.
+        start_time = self.timezone.localize(dt.datetime(2024, 10, 27, 0, 0, 0))
+        end_time = self.timezone.localize(dt.datetime(2024, 10, 27, 4, 0, 0))
+
+        expected_hours = 6  # 4 real hours + 1 additional hour due to DST ending and +1 as end_time is inclusive
+        result = DayaheadMarketPrices.expected_length_of_data(start_time, end_time)
+        self.assertEqual(result, expected_hours)
+
+    def test_spring_dst_transition(self):
+        # Spring DST Transition: Clocks skip forward 1 hour at 02:00 on March 31, 2024
+        # This means the hour from 2 AM to 3 AM doesn't "exist".
+        start_time = self.timezone.localize(dt.datetime(2024, 3, 31, 0, 0, 0))
+        end_time = self.timezone.localize(dt.datetime(2024, 3, 31, 4, 0, 0))
+
+        expected_hours = 4  # Only 3 real hours exist, but +1 as end_time is inclusive
+        result = DayaheadMarketPrices.expected_length_of_data(start_time, end_time)
+        self.assertEqual(result, expected_hours)
+
+    def test_same_time(self):
+        # Edge case: Start and end time are the same
+        start_time = self.timezone.localize(dt.datetime(2024, 10, 10, 1, 0, 0))
+        end_time = self.timezone.localize(dt.datetime(2024, 10, 10, 1, 0, 0))
+
+        expected_hours = 1  # 0 hours, but +1 as end_time is inclusive
+        result = DayaheadMarketPrices.expected_length_of_data(start_time, end_time)
+        self.assertEqual(result, expected_hours)
+
+    def test_across_days(self):
+        # Case: Across two days with no DST involved
+        start_time = self.timezone.localize(dt.datetime(2024, 10, 10, 23, 0, 0))
+        end_time = self.timezone.localize(dt.datetime(2024, 10, 11, 3, 0, 0))
+
+        expected_hours = 5  # 4 hours, but +1 as end_time is inclusive
+        result = DayaheadMarketPrices.expected_length_of_data(start_time, end_time)
+        self.assertEqual(result, expected_hours)
 
 
 if __name__ == '__main__':

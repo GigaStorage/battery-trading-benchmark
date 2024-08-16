@@ -1,5 +1,4 @@
 import datetime as dt
-
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 
@@ -7,7 +6,6 @@ import pandas as pd
 import pytz
 from entsoe import entsoe
 
-import market_data.AbstractQueryMarketPrices
 from market_data.AbstractQueryMarketPrices import AbstractQueryMarketPrices
 
 

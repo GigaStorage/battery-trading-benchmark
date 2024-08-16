@@ -94,6 +94,11 @@ class AbstractQueryMarketPrices(ABC):
 
     @classmethod
     @abc.abstractmethod
+    def expected_length_of_data(cls, start_time: dt.datetime, end_time: dt.datetime):
+        pass
+
+    @classmethod
+    @abc.abstractmethod
     def cold_load_data(cls, start_time: dt.datetime, end_time: dt.datetime, client: EntsoePandasClient,
                        store_in_hot_load: bool, entsoe_area: Area = Area['NL']) -> PriceScheduleDataFrame:
         """
@@ -114,7 +119,8 @@ class AbstractQueryMarketPrices(ABC):
     def hot_load_data(cls, start_time: dt.datetime, end_time: dt.datetime,
                       allow_cold_load: bool, entsoe_area: Area = Area['NL'],
                       file_name: Optional[str] = None,
-                      client: Optional[EntsoePandasClient] = None) -> PriceScheduleDataFrame:
+                      client: Optional[EntsoePandasClient] = None,
+                      assume_naive_timezones: bool = True) -> PriceScheduleDataFrame:
         """
         Load the market_data from entsoe_area from start_time until (and including) end_time using a stored pkl file
 
@@ -124,8 +130,47 @@ class AbstractQueryMarketPrices(ABC):
         :param entsoe_area: entsoe.Area ENUM, containing a (country)code and a tz
         :param file_name: string specifying the filename of the pkl file which has stored the hot load
         :param client: EntsoePandasClient that can be used if the cold_load is allowed
+        :param assume_naive_timezones: boolean specifying if the method is allowed to assume_naive_timezones
+
         :return: A PriceScheduleDataFrame from start_time until (and including) end_time
 
         :raises entsoe.NoMatchingDataError, ConnectionError, HTTPError, if there is an error retrieving data
+        :raises TypeError: If naive datetime objects are passed and assume_naive_timezones is False
         """
-        pass
+        # Verify the timezone of the passed datetimes
+        start_time, end_time = cls.verify_start_and_end_time(start_time, end_time, entsoe_area, assume_naive_timezones)
+
+        try:
+            if file_name is None:
+                file_name = cls.DEFAULT_FILE_NAME
+            total_schedule = pd.read_pickle(file_name)
+        except FileNotFoundError:
+            if allow_cold_load:
+                return cls.cold_load_data(
+                    start_time=start_time,
+                    end_time=end_time,
+                    client=client,
+                    store_in_hot_load=True,
+                    entsoe_area=entsoe_area,
+                )
+            else:
+                raise ValueError("Data that you requested has not been cold_loaded.")
+
+        res_schedule = total_schedule[start_time:end_time]
+
+        expected_length_of_data = cls.expected_length_of_data(start_time, end_time)
+        # Happy flow, the data is found, return it
+        if len(res_schedule) == expected_length_of_data:
+            return res_schedule
+
+        # Unhappy flow, no (or insufficient) data was found, check if we can cold_load
+        if allow_cold_load:
+            return cls.cold_load_data(
+                start_time=start_time,
+                end_time=end_time,
+                client=client,
+                store_in_hot_load=True,
+                entsoe_area=entsoe_area
+            )
+        # If no cold_load is allowed, we raise a ValueError
+        raise ValueError("Data that you requested has not been cold_loaded.")
