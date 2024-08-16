@@ -210,9 +210,9 @@ if not flag_no_dayahead_data:
         average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
 
         dayahead_title = f"Battery Trading Benchmark - Dayahead {date_in_title} {country_name}\n" \
-                f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
-                f"Revenue: €{dayahead_revenue}\n" \
-                f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
+                         f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
+                         f"Revenue: €{dayahead_revenue}\n" \
+                         f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
         if generate_plots:
             dayahead_figure = plot_power_schedule_capacity_and_prices(
                 price_schedule_df=dayahead_price_schedule,
@@ -227,7 +227,6 @@ if not flag_no_dayahead_data:
         print('The solver could not find an optimal solution.')
 else:
     dayahead_revenue = "Error during dayahead market data processing"
-
 
 # ---------- IMBALANCE MARKET ----------
 if not flag_no_imbalance_data:
@@ -282,9 +281,9 @@ if not flag_no_imbalance_data:
         average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
 
         imbalance_title = f"Battery Trading Benchmark - Imbalance {date_in_title} {country_name}\n" \
-                f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
-                f"Revenue: €{imbalance_revenue}\n" \
-                f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
+                          f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
+                          f"Revenue: €{imbalance_revenue}\n" \
+                          f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
         if generate_plots:
             imbalance_figure = plot_power_schedule_capacity_and_prices(
                 price_schedule_df=imbalance_price_schedule,
