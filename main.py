@@ -305,7 +305,7 @@ if flag_no_dayahead_data and flag_no_imbalance_data:
 st.write(f"""
 ## Battery Trading Benchmark {date_in_title}
 The Battery Trading Benchmark calculates the **mathematical optimum** of a
- {power_text}|{capacity_text} system dispatched on a **single** energy market.
+ {power_text}|{capacity_text} system with {allowed_cycles:.2f} cycles dispatched on a **single** energy market.
 These results are theoretical calculations and are not based on real battery trading.
 
 | Energy Market | Revenue                	|
