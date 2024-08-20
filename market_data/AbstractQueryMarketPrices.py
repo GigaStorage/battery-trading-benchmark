@@ -17,7 +17,7 @@ class AbstractQueryMarketPrices(ABC):
     @classmethod
     def update_hot_load(cls, market_data: PriceScheduleDataFrame, file_name: Optional[str] = None):
         """
-        update_hot_load will take the dayahead_price_schedule and use it to update the current information in the pkl
+        update_hot_load will take the market_data and use it to update the information in the file_name.pkl
         :param market_data: A PriceScheduleDataFrame with new information
         :param file_name: A string file_name where the pkl is stored
         """
@@ -94,7 +94,16 @@ class AbstractQueryMarketPrices(ABC):
 
     @classmethod
     @abc.abstractmethod
-    def expected_length_of_data(cls, start_time: dt.datetime, end_time: dt.datetime):
+    def expected_length_of_data(cls, start_time: dt.datetime, end_time: dt.datetime) -> int:
+        """
+        expected_length_of_data will return an integer representing the expected length of results when querying market
+          prices from start_time until end_time. Please note end_time is inclusive!
+
+        :param start_time: Datetime representing the start of market data
+        :param end_time: Datetime representing the (inclusive) end time of market data requested
+
+        :returns An int representing the expected length of results when querying marker prices for the offered times
+        """
         pass
 
     @classmethod
