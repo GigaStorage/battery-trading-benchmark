@@ -2,13 +2,15 @@ import datetime as dt
 import os
 
 import pandas as pd
-from requests.exceptions import ConnectionError, HTTPError
 import streamlit as st
 from entsoe import entsoe, EntsoePandasClient
 from ortools.linear_solver import pywraplp
+from requests.exceptions import ConnectionError, HTTPError
 
+from market_data.DayaheadMarketPrices import DayaheadMarketPrices
+from market_data.ImbalanceMarketPrices import ImbalanceMarketPrices
 from menu import GIGA_HOME_PAGE, REPOSITORY_HOME_PAGE, menu, ENTSOE_GITHUB_HOME_PAGE
-from model import PriceScheduleDataFrame, add_power_schedules_to_solver, add_maximize_revenue, \
+from model import add_power_schedules_to_solver, add_maximize_revenue, \
     add_capacity_and_cycles_to_solver
 from visualizer import plot_power_schedule_capacity_and_prices
 
@@ -88,23 +90,32 @@ entsoe_area = entsoe.Area['NL']
 st.write(f"## Choose your date")
 default_date = dt.date.today() - dt.timedelta(days=5)
 user_start_date_input = st.date_input("Date", value=default_date)
-start = pd.Timestamp(user_start_date_input.strftime("%Y%m%d"), tz=entsoe_area.tz)
+start_datetime_of_dayahead = dt.datetime.combine(user_start_date_input, dt.time(0, 0))
 
 user_end_date_input = st.date_input("End date (non-inclusive)", value=default_date + dt.timedelta(days=1))
 end_of_day_on_dayahead = dt.datetime.combine(user_end_date_input - dt.timedelta(days=1), dt.time(23, 0))
-end = pd.Timestamp(end_of_day_on_dayahead.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)  # end is inclusive
 
 # ---------- LOAD MARKET DATA ----------
 if ENTSOE_API_KEY is None:
     raise RuntimeError("The required environment variable ENTSOE_API_KEY is not set.")
 client = EntsoePandasClient(api_key=ENTSOE_API_KEY)
+# Allow cold loads from ENTSOE if it is smaller than a month.
+allow_cold_load = True
+if (end_of_day_on_dayahead - start_datetime_of_dayahead).days > 32:
+    allow_cold_load = False
+# If the data is above a week, don't make the graphs to save time.
+generate_plots = True
+if (end_of_day_on_dayahead - start_datetime_of_dayahead).days > 8:
+    generate_plots = False
 
 try:
-    entsoe_dayahead_prices = client.query_day_ahead_prices(entsoe_area.name, start=start, end=end)
-    # Convert the EntsoePandasClient result into a PriceScheduleDataFrame
-    dayahead_price_schedule = pd.DataFrame(entsoe_dayahead_prices.rename('charge_price'))
-    dayahead_price_schedule['discharge_price'] = entsoe_dayahead_prices
-    PriceScheduleDataFrame.validate(dayahead_price_schedule)
+    dayahead_price_schedule = DayaheadMarketPrices.hot_load_data(
+        start_time=start_datetime_of_dayahead,
+        end_time=end_of_day_on_dayahead,
+        allow_cold_load=allow_cold_load,
+        entsoe_area=entsoe_area,
+        client=client,
+    )
     flag_no_dayahead_data = False
 except (entsoe.NoMatchingDataError, ConnectionError, HTTPError):
     dayahead_price_schedule = pd.DataFrame()
@@ -114,13 +125,14 @@ dayahead_length_of_timestep_hour = 1
 
 try:
     imbalance_end_datetime = end_of_day_on_dayahead.replace(minute=45)
-    imbalance_end_timestamp = pd.Timestamp(imbalance_end_datetime.strftime('%Y%m%d%H%M'), tz=entsoe_area.tz)
-    entsoe_imbalance_prices = client.query_imbalance_prices(entsoe_area.name, start=start, end=end)
-    imbalance_price_schedule = entsoe_imbalance_prices.rename({
-        'Short': 'charge_price',
-        'Long': 'discharge_price',
-    }, axis=1)
-    PriceScheduleDataFrame.validate(imbalance_price_schedule)
+
+    imbalance_price_schedule = ImbalanceMarketPrices.hot_load_data(
+        start_time=start_datetime_of_dayahead,
+        end_time=imbalance_end_datetime,
+        allow_cold_load=allow_cold_load,
+        entsoe_area=entsoe_area,
+        client=client
+    )
     flag_no_imbalance_data = False
 except (entsoe.NoMatchingDataError, ConnectionError, HTTPError):
     imbalance_price_schedule = pd.DataFrame()
@@ -130,9 +142,9 @@ except (entsoe.NoMatchingDataError, ConnectionError, HTTPError):
 round_trip_efficiency = charge_efficiency * discharge_efficiency * 100
 country_name = entsoe_area.meaning.split(',')[0]
 if len(dayahead_price_schedule) > 25:
-    date_in_title = f"{start.strftime('%d-%m-%Y')} - {user_end_date_input.strftime('%d-%m-%Y')}"
+    date_in_title = f"{start_datetime_of_dayahead.strftime('%d-%m-%Y')} - {user_end_date_input.strftime('%d-%m-%Y')}"
 else:
-    date_in_title = start.strftime('%d-%m-%Y')
+    date_in_title = start_datetime_of_dayahead.strftime('%d-%m-%Y')
 power_text = f"{max_power_kw / 1000:,.1f} MW" if max_power_kw >= 1000 else f"{max_power_kw:,.0f} kW"
 if max_battery_capacity_kwh >= 1000:
     capacity_text = f"{max_battery_capacity_kwh / 1000:,.1f} MWh"
@@ -197,23 +209,24 @@ if not flag_no_dayahead_data:
         average_state_of_charge = sum(optimal_capacity) / len(optimal_capacity)
         average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
 
-        title = f"Battery Trading Benchmark - Dayahead {date_in_title} {country_name}\n" \
-                f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
-                f"Revenue: €{dayahead_revenue}\n" \
-                f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
-        dayahead_figure = plot_power_schedule_capacity_and_prices(
-            price_schedule_df=dayahead_price_schedule,
-            x_axis=dayahead_x_axis,
-            charge_schedule=optimal_charge_power,
-            discharge_schedule=optimal_discharge_power,
-            capacity=optimal_capacity,
-            title=title
-        )
+        dayahead_title = f"Battery Trading Benchmark - Dayahead {date_in_title} {country_name}\n" \
+                         f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
+                         f"Revenue: €{dayahead_revenue}\n" \
+                         f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
+        if generate_plots:
+            dayahead_figure = plot_power_schedule_capacity_and_prices(
+                price_schedule_df=dayahead_price_schedule,
+                x_axis=dayahead_x_axis,
+                charge_schedule=optimal_charge_power,
+                discharge_schedule=optimal_discharge_power,
+                capacity=optimal_capacity,
+                title=dayahead_title
+            )
+
     else:
         print('The solver could not find an optimal solution.')
 else:
     dayahead_revenue = "Error during dayahead market data processing"
-
 
 # ---------- IMBALANCE MARKET ----------
 if not flag_no_imbalance_data:
@@ -267,18 +280,19 @@ if not flag_no_imbalance_data:
         average_state_of_charge = sum(optimal_capacity) / len(optimal_capacity)
         average_state_of_charge_perc = average_state_of_charge / max_battery_capacity_kwh * 100
 
-        title = f"Battery Trading Benchmark - Imbalance {date_in_title} {country_name}\n" \
-                f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
-                f"Revenue: €{imbalance_revenue}\n" \
-                f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
-        imbalance_figure = plot_power_schedule_capacity_and_prices(
-            price_schedule_df=imbalance_price_schedule,
-            x_axis=imbalance_x_axis,
-            charge_schedule=optimal_charge_power,
-            discharge_schedule=optimal_discharge_power,
-            capacity=optimal_capacity,
-            title=title
-        )
+        imbalance_title = f"Battery Trading Benchmark - Imbalance {date_in_title} {country_name}\n" \
+                          f"{power_text}|{capacity_text}, {optimal_cycles[-1]:.2f} Cycles\n" \
+                          f"Revenue: €{imbalance_revenue}\n" \
+                          f"Solved in {optimiser_time:.0f} ms in {optimiser_iterations} iterations"
+        if generate_plots:
+            imbalance_figure = plot_power_schedule_capacity_and_prices(
+                price_schedule_df=imbalance_price_schedule,
+                x_axis=imbalance_x_axis,
+                charge_schedule=optimal_charge_power,
+                discharge_schedule=optimal_discharge_power,
+                capacity=optimal_capacity,
+                title=imbalance_title
+            )
     else:
         print('The solver could not find an optimal solution.')
 else:
@@ -291,7 +305,7 @@ if flag_no_dayahead_data and flag_no_imbalance_data:
 st.write(f"""
 ## Battery Trading Benchmark {date_in_title}
 The Battery Trading Benchmark calculates the **mathematical optimum** of a
- {power_text}|{capacity_text} system dispatched on a **single** energy market.
+ {power_text}|{capacity_text} system with {allowed_cycles:.2f} cycles dispatched on a **single** energy market.
 These results are theoretical calculations and are not based on real battery trading.
 
 | Energy Market | Revenue                	|
@@ -320,7 +334,10 @@ st.write(f"""
 if flag_no_dayahead_data:
     st.write(dayahead_revenue)
 else:
-    st.pyplot(dayahead_figure)
+    if generate_plots:
+        st.pyplot(dayahead_figure)
+    else:
+        st.write(dayahead_title)
 
 st.write(f"""
 ## Imbalance
@@ -328,4 +345,7 @@ st.write(f"""
 if flag_no_imbalance_data:
     st.write(imbalance_revenue)
 else:
-    st.pyplot(imbalance_figure)
+    if generate_plots:
+        st.pyplot(imbalance_figure)
+    else:
+        st.write(imbalance_title)
