@@ -28,6 +28,9 @@ from visualizer import plot_power_schedule_capacity_and_prices
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ==========================================
+# APP CONFIGURATION & INITIALIZATION
+# ==========================================
 ENTSOE_API_KEY = os.environ["ENTSOE_API_KEY"]
 
 st.set_page_config(
@@ -53,7 +56,9 @@ Market data is retrieved from the [ENTSO-E Transparency Platform]({ENTSOE_GITHUB
 ## Define your BESS
 """)
 
-# ---------- USER INPUT ----------
+# ==========================================
+# USER INPUT SECTION
+# ==========================================
 # 1. Define the limits of your BESS
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -95,7 +100,9 @@ start_datetime_of_dayahead = dt.datetime.combine(user_start_date_input, dt.time(
 user_end_date_input = st.date_input("End date (non-inclusive)", value=default_date + dt.timedelta(days=1))
 end_of_day_on_dayahead = dt.datetime.combine(user_end_date_input - dt.timedelta(days=1), dt.time(23, 0))
 
-# ---------- LOAD MARKET DATA ----------
+# ==========================================
+# LOAD MARKET DATA
+# ==========================================
 if ENTSOE_API_KEY is None:
     raise RuntimeError("The required environment variable ENTSOE_API_KEY is not set.")
 client = EntsoePandasClient(api_key=ENTSOE_API_KEY)
@@ -138,7 +145,9 @@ except (entsoe.NoMatchingDataError, ConnectionError, HTTPError):
     imbalance_price_schedule = pd.DataFrame()
     flag_no_imbalance_data = True
 
-# ---------- METADATA OF BENCHMARK ----------
+# ==========================================
+# METADATA OF BENCHMARK
+# ==========================================
 round_trip_efficiency = charge_efficiency * discharge_efficiency * 100
 country_name = entsoe_area.meaning.split(',')[0]
 if len(dayahead_price_schedule) > 25:
@@ -151,13 +160,17 @@ if max_battery_capacity_kwh >= 1000:
 else:
     capacity_text = f"{max_battery_capacity_kwh:,.0f} kWh"
 
-# ---------- ADDITIONAL VARIABLES USED IN PLOTS ----------
+# ==========================================
+# ADDITIONAL VARIABLES USED IN PLOTS
+# ==========================================
 if not flag_no_dayahead_data:
     dayahead_x_axis = dayahead_price_schedule.index.tolist()
 if not flag_no_imbalance_data:
     imbalance_x_axis = imbalance_price_schedule.index.tolist()
 
-# ---------- DAYAHEAD MARKET ----------
+# ==========================================
+# DAY-AHEAD MARKET OPTIMIZATION
+# ==========================================
 if not flag_no_dayahead_data:
     solver = pywraplp.Solver(
         'DAYAHEAD MARKET',
@@ -228,7 +241,9 @@ if not flag_no_dayahead_data:
 else:
     dayahead_revenue = "Error during dayahead market data processing"
 
-# ---------- IMBALANCE MARKET ----------
+# ==========================================
+# IMBALANCE MARKET OPTIMIZATION
+# ==========================================
 if not flag_no_imbalance_data:
     solver = pywraplp.Solver(
         'IMBALANCE MARKET',
@@ -302,6 +317,9 @@ if flag_no_dayahead_data and flag_no_imbalance_data:
     st.exception(RuntimeError("Error while retrieving market data, please verify the offered date(s)."))
     st.stop()
 
+# ==========================================
+# RESULTS & REPORTING
+# ==========================================
 st.write(f"""
 ## Battery Trading Benchmark {date_in_title}
 The Battery Trading Benchmark calculates the **mathematical optimum** of a
